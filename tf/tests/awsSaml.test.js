@@ -1,7 +1,7 @@
 const _ = require('lodash');
 
 const eventObj = require('./modules/event.json');
-const { onExecutePostLogin } = require('../actions/awsSaml.js');
+const { onExecutePostLogin } = require('../actions/dist/awsSaml.js');
 
 jest.mock('node-fetch');
 
