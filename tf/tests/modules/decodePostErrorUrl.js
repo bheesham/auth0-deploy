@@ -1,6 +1,9 @@
 const querystring = require("querystring");
 const jwt = require("jsonwebtoken");
 
+/**
+ * @param {string} [url]
+ */
 const decodeRedirect = (url) => {
   // These were generated simply for tests, and are not used anywhere else
   const jwt_msgs_rsa_skey =
@@ -13,16 +16,23 @@ const decodeRedirect = (url) => {
     const parsedUrl = new URL(url);
 
     // Parse the query parameters
+    /** @type {any} */
     const queryParams = querystring.parse(parsedUrl.search.slice(1));
 
     // Get the jsonwebtoken to be verified
+    /** @type {string} */
     const token = queryParams.error;
 
     // Get public key to decode jsonwebtoken
     const pkey = Buffer.from(jwt_msgs_rsa_pkey, "base64").toString("ascii");
 
-    // Decode the token and return the code
-    return jwt.verify(token, pkey).code;
+    if (token) {
+      // Decode the token and return the code
+      /** @type {any} */
+      const decoded = jwt.verify(token, pkey);
+      /** @type {string} */
+      return decoded.code;
+    }
   }
   return undefined;
 };

@@ -3,10 +3,17 @@ const YAML = require("js-yaml");
 const jwt = require("jsonwebtoken");
 const AWS = require("aws-sdk");
 
+/**
+ * @param {PreLoginEvent} event
+ * @param {any} api
+ */
 exports.onExecutePostLogin = async (event, api) => {
   console.log("Running actions:", "accessRules");
 
   // Retrieve and return a secret from AWS Secrets Manager
+  /**
+   * @returns {Promise.<Secrets>}
+   */
   const getSecrets = async () => {
     try {
       if (!event.secrets.accessKeyId || !event.secrets.secretAccessKey) {
@@ -28,12 +35,12 @@ exports.onExecutePostLogin = async (event, api) => {
       const data = await secretsManager
         .getSecretValue({ SecretId: secretPath })
         .promise();
-      // handle string or binary
-      if ("SecretString" in data) {
+      // We only store `SecretString`s.
+      if (data.SecretString) {
+        // This will throw an error if `data.SecretString` is undefined.
         return JSON.parse(data.SecretString);
       } else {
-        let buff = Buffer.from(data.SecretBinary, "base64");
-        return buff.toString("ascii");
+        throw new Error("no secret found");
       }
     } catch (err) {
       console.log("getSecrets:", err);
@@ -50,6 +57,10 @@ exports.onExecutePostLogin = async (event, api) => {
   // @rcontext the current Auth0 rule context (passed from the rule)
   // Returns rcontext with redirect set to the error
 
+  /**
+   * @param {string} code
+   * @param {string} [prefered_connection_arg]
+   */
   const postError = (code, prefered_connection_arg) => {
     try {
       const prefered_connection = prefered_connection_arg || ""; // Optional arg
@@ -90,7 +101,7 @@ exports.onExecutePostLogin = async (event, api) => {
       `User primary email NOT verified, refusing login for ${event.user.email}`
     );
     // This post error is broken in sso dashboard
-    postError("primarynotverified", event, api, jwt, jwtMsgsRsaSkey);
+    postError("primarynotverified");
     return;
   }
 
@@ -110,11 +121,18 @@ exports.onExecutePostLogin = async (event, api) => {
   };
 
   // Check if array A has any occurrence from array B
+  /**
+   * @param {string[]} A
+   * @param {string[]} B
+   */
   const hasCommonElements = (A, B) => {
     return A.some((element) => B.includes(element));
   };
 
   // Return a single identity by connection name, from the user structure
+  /**
+   * @param {string} connection
+   */
   const getProfileData = (connection) => {
     var i = 0;
     for (i = 0; i < event.user.identities.length; i++) {
@@ -128,11 +146,17 @@ exports.onExecutePostLogin = async (event, api) => {
 
   // Sometimes we need to add custom claims to the various tokens we hand
   // out.
+  /**
+   * @param {string[]} groups
+   */
   const groupsSetCustomClaims = (groups) => {
     // If the only scopes requested are neither profile nor any scope beginning with
     // https:// then do not overload with custom claims
     const scopes_requested = event.transaction.requested_scopes || [];
 
+    /**
+     * @param {string} scope
+     */
     let fixup_needed = (scope) => {
       return scope === "profile" || scope.startsWith("https://");
     };
@@ -162,6 +186,7 @@ exports.onExecutePostLogin = async (event, api) => {
     // With account linking its possible that LDAP is not the main account on contributor LDAP accounts
     // Here we iterate over all possible user identities and build an array of all groups from them
     let _identity;
+    /** @type {Array.<string>} */
     let identityGroups = [];
     // Iterate over each identity
     for (let x = 0, len = event.user.identities.length; x < len; x++) {
@@ -172,10 +197,14 @@ exports.onExecutePostLogin = async (event, api) => {
         // If profileData contains a groups array
         if ("groups" in _identity.profileData) {
           // Merge the group arry into identityGroups
-          identityGroups.push(..._identity.profileData.groups);
+          const groups = _identity.profileData.groups;
+          if (groups) {
+            identityGroups.push(...groups);
+          }
         }
       }
     }
+    /** @type {Array.<string>} */
     const all_groups = [
       ...user_groups,
       ...app_metadata_groups,
@@ -190,9 +219,32 @@ exports.onExecutePostLogin = async (event, api) => {
     );
   };
 
+  /**
+   * @param {boolean} enableDuo
+   * @param {string[]} aai
+   * @param {string} aal
+   */
+  const allow = (enableDuo, aai, aal) => {
+    return {
+      granted: true,
+      enableDuo,
+      aai,
+      aal,
+      denied: {
+        reason: "",
+      },
+    };
+  };
+
+  /**
+   * @param {string} reason
+   */
   const deny = (reason) => {
     return {
       granted: false,
+      enableDuo: false,
+      aai: [],
+      aal: "",
       denied: {
         reason,
       },
@@ -200,6 +252,11 @@ exports.onExecutePostLogin = async (event, api) => {
   };
 
   // Process the access cache decision
+  /**
+   * @param {string[]} groups
+   * @param {App[]} access_rules
+   * @param {any} access_file_conf
+   */
   const access_decision = (groups, access_rules, access_file_conf) => {
     // This is used for authorized user/groups
     let authorized = false;
@@ -209,6 +266,9 @@ exports.onExecutePostLogin = async (event, api) => {
     let required_aal = "MEDIUM";
 
     const apps = access_rules.filter(
+      /**
+       * @param {any} a
+       */
       (a) =>
         (a.application.client_id ?? "").indexOf(event.client.client_id) >= 0
     );
@@ -426,12 +486,7 @@ exports.onExecutePostLogin = async (event, api) => {
     }
 
     // We matched no rule, access is granted
-    return {
-      granted: true,
-      enableDuo,
-      aai,
-      aal,
-    };
+    return allow(enableDuo, aai, aal);
   };
 
   const access_file_conf = {
@@ -444,10 +499,15 @@ exports.onExecutePostLogin = async (event, api) => {
   };
 
   // This function pulls the apps.yml and returns a promise to yield the application list
+  /**
+   * @param {string} url
+   * @returns {Promise<App[]>}
+   */
   async function getAppsYaml(url) {
     try {
       const response = await fetch(url);
       const data = await response.text();
+      /** @type any */
       const yamlContent = YAML.load(data);
       return yamlContent.apps;
     } catch (error) {

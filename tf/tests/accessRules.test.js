@@ -1,12 +1,37 @@
 const _ = require("lodash");
 
 const appsYaml = require("./modules/apps.yml.js").load();
+
+/** @type {PreLoginEvent} */
 const eventObj = require("./modules/event.json");
+
 const decodeRedirect = require("./modules/decodePostErrorUrl.js");
 const idTokenObj = require("./modules/idToken.json");
 const { onExecutePostLogin } = require("../actions/accessRules.js");
 
+/** @type {PreLoginEvent} */
+var _event;
+
+/** @type {any} */
+var _idToken;
+
+/** @type {any} */
+var api;
+
+/** @type {any} */
+var consoleLogSpy;
+
+/** @type {any} */
+var consoleWarnSpy;
+
+/** @type {any} */
+var consoleErrorSpy;
+
+/** @type {any} */
+var fetchSpy;
+
 beforeEach(() => {
+  /** @type {PreLoginEvent} */
   _event = _.cloneDeep(eventObj);
   _event.user.aai = [];
   _event.secrets = {};
@@ -37,25 +62,61 @@ beforeEach(() => {
   };
 
   // Mock setCustomClaim
-  api.idToken.setCustomClaim.mockImplementation((key, value) => {
-    _idToken[key] = value;
-  });
+  api.idToken.setCustomClaim.mockImplementation(
+    /**
+     * @param {string} key
+     * @param {string} value
+     */
+    (key, value) => {
+      _idToken[key] = value;
+    }
+  );
 
   // Mock sendUserTo
-  api.redirect.sendUserTo.mockImplementation((uri) => {
+  api.redirect.sendUserTo.mockImplementation((/** @type {string} */ uri) => {
     _event.transaction["redirect_uri"] = uri;
   });
 
   // Mock setAppMetadata
-  api.user.setAppMetadata.mockImplementation((key, value) => {
-    _event.user.app_metadata[key] = value;
-  });
+  api.user.setAppMetadata.mockImplementation(
+    /**
+     * @param {string} key
+     * @param {string} value
+     */
+    (key, value) => {
+      _event.user.app_metadata[key] = value;
+    }
+  );
 
   // Spy on console
   consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
   consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
   consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
   fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue({
+    /** @type {any} */
+    headers: {},
+    ok: true,
+    redirected: false,
+    status: 200,
+    statusText: "OK",
+    url: "",
+    /** @type {any} */
+    clone: {},
+    /** @type {any} */
+    type: {},
+    bodyUsed: true,
+    /** @type {any} */
+    arrayBuffer: {},
+    /** @type {any} */
+    blob: {},
+    /** @type {any} */
+    body: {},
+    /** @type {any} */
+    bytes: {},
+    /** @type {any} */
+    formData: {},
+    /** @type {any} */
+    json: {},
     text: jest.fn().mockResolvedValue(appsYaml),
   });
 });
@@ -155,7 +216,7 @@ describe("Test group merges", () => {
       "app_metadata_groups_2",
     ];
 
-    mergedGroups = [
+    const mergedGroups = [
       "everyone",
       "groups_1",
       "groups_2",
@@ -440,7 +501,7 @@ describe("Client is defined in apps.yml as client00000000000000000000000005", ()
     _event.client.client_id = "client00000000000000000000000005";
     _event.connection.name = "google-oauth2";
     _event.user.groups = [];
-    _event.ldap_groups = [];
+    _event.user.ldap_groups = [];
     _event.user.app_metadata.groups = [];
 
     await onExecutePostLogin(_event, api);
