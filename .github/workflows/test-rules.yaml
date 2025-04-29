@@ -23,3 +23,5 @@ jobs:
         run: npm ci
       - name: Test Rules
         run: npm run tests
+      - name: Typecheck
+        run: npx tsc
