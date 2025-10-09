@@ -1,6 +1,17 @@
 const jwt = require("jsonwebtoken");
 const AWS = require("aws-sdk");
 
+/**
+ * @typedef {import('./types/auth0-actions').Event} Event
+ * @typedef {import('./types/auth0-actions').Api} Api
+ */
+
+/**
+ * Auth0 Post Login Action Handler for Activating New Users in CIS
+ * @param {Event} event - The Auth0 event object
+ * @param {Api} api - The Auth0 API object
+ * @returns {Promise<void>}
+ */
 exports.onExecutePostLogin = async (event, api) => {
   console.log("Running action:", "activateNewUsersInCIS");
 
@@ -55,6 +66,12 @@ exports.onExecutePostLogin = async (event, api) => {
   }
 
   // Retrieve and return a secret from AWS Secrets Manager
+  /**
+   * @param {typeof import('aws-sdk')} AWS - AWS SDK
+   * @param {string} accessKeyId - AWS access key ID
+   * @param {string} secretAccessKey - AWS secret access key
+   * @returns {Promise<any>} Secret data
+   */
   const getSecrets = async (AWS, accessKeyId, secretAccessKey) => {
     try {
       if (!accessKeyId || !secretAccessKey) {
@@ -77,11 +94,13 @@ exports.onExecutePostLogin = async (event, api) => {
         .getSecretValue({ SecretId: secretPath })
         .promise();
       // handle string or binary
-      if ("SecretString" in data) {
+      if ("SecretString" in data && data.SecretString) {
         return JSON.parse(data.SecretString);
-      } else {
-        let buff = Buffer.from(data.SecretBinary, "base64");
+      } else if (data.SecretBinary) {
+        let buff = Buffer.from(/** @type {string} */ (data.SecretBinary), "base64");
         return buff.toString("ascii");
+      } else {
+        throw new Error("No secret value found");
       }
     } catch (err) {
       console.log("getSecrets:", err);
@@ -132,7 +151,7 @@ exports.onExecutePostLogin = async (event, api) => {
       const data = await response.json();
       // Cache bearer token, so it's not constantly retrieved
       // TODO: actually cache the bearer token
-      const personapi_bearer_token = data.access_token;
+      const personapi_bearer_token = /** @type {any} */ (data).access_token;
       console.log(`Successfully retrieved bearer token from Auth0`);
       return personapi_bearer_token;
     } catch (err) {
@@ -188,8 +207,9 @@ exports.onExecutePostLogin = async (event, api) => {
     // now we need to go and update the identities values; this is based on the logic here:
     // https://github.com/mozilla-iam/cis/blob/master/python-modules/cis_publisher/cis_publisher/auth0.py
     // which may or may not be correct, I dunno
-    for (let i = 0; i < event.user.identities.length; i++) {
-      const identity = event.user.identities[i];
+    if (event.user.identities) {
+      for (let i = 0; i < event.user.identities.length; i++) {
+        const identity = event.user.identities[i];
       // ignore a provider if it's not whitelisted
       if (!WHITELISTED_CONNECTIONS.includes(identity.connection)) {
         continue;
@@ -300,6 +320,7 @@ exports.onExecutePostLogin = async (event, api) => {
         // profile.identities.mozilliansorg_id = null;
       }
     }
+    }
 
     // now, we need to sign every field and subfield
     signAll(profile);
@@ -309,6 +330,9 @@ exports.onExecutePostLogin = async (event, api) => {
     return profile;
   };
 
+  /**
+   * @param {string} bearerToken - Bearer token for API authentication
+   */
   const getPersonProfile = async (bearerToken) => {
     const options = {
       method: "GET",
@@ -335,6 +359,10 @@ exports.onExecutePostLogin = async (event, api) => {
     }
   };
 
+  /**
+   * @param {string} bearerToken - Bearer token for API authentication
+   * @param {any} profile - User profile data
+   */
   const postProfile = async (bearerToken, profile) => {
     console.log(`Posting profile for ${USER_ID} to ChangeAPI`);
 
@@ -370,6 +398,9 @@ exports.onExecutePostLogin = async (event, api) => {
     }
   };
 
+  /**
+   * @param {any} profile - Profile to sign
+   */
   const signAll = (profile) => {
     // now we need to sign every attribute in the profile, if we're allowed to
     // otherwise, we will descend one level deep for sub attributes
@@ -384,6 +415,9 @@ exports.onExecutePostLogin = async (event, api) => {
     });
   };
 
+  /**
+   * @param {any} attr - Attribute to sign
+   */
   const signAttribute = (attr) => {
     // we can only sign attributes that access_provider (e.g. auth0) is allowed to sign
     // we also ignore things that don't have a pre-existing signature field
@@ -445,7 +479,7 @@ exports.onExecutePostLogin = async (event, api) => {
     const profile = await getPersonProfile(bearerToken);
 
     // If the profile already exists, set the existsInCIS in app.metadata
-    if (Object.keys(profile).length !== 0) {
+    if (Object.keys(/** @type {object} */ (profile)).length !== 0) {
       setExistsInCIS();
       console.log(
         `Profile for ${event.user.user_id} already exists in PersonAPI as ${USER_ID}`

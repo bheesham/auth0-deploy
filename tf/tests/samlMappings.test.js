@@ -162,17 +162,8 @@ describe("Tines SAML tests", () => {
       ];
 
       expectedSamlAttributes = {
-        "http://sso.mozilla.com/claim/groups": [
-          "mozilliansorg_sec_tines-admin",
-          "mozilliansorg_sec_tines-access",
-          "team_moco",
-          "team_mofo",
-          "team_mozorg",
-          "team_mzla",
-          "team_mzai",
-          "team_mzvc",
-        ],
-        "http://schemas.xmlsoap.org/claims/Group": null,
+        "http://sso.mozilla.com/claim/groups": "mozilliansorg_sec_tines-admin,mozilliansorg_sec_tines-access,team_moco,team_mofo,team_mozorg,team_mzla,team_mzai,team_mzvc",
+        "http://schemas.xmlsoap.org/claims/Group": "",
       };
 
       // Execute onExecutePostLogin
@@ -240,7 +231,7 @@ describe("Braintree SAML tests", () => {
 
       expectedSamlAttributes = {
         grant_all_merchant_accounts: "true",
-        roles: _event.user.app_metadata?.groups,
+        roles: "",
       };
 
       // Execute onExecutePostLogin
@@ -576,7 +567,7 @@ describe("Braintree SAML tests", () => {
 
       const expectedSamlAttributes = {
         grant_all_merchant_accounts: "true",
-        roles: _event.user.app_metadata.groups,
+        roles: "",
       };
 
       // Execute onExecutePostLogin

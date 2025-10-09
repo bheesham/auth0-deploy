@@ -13,6 +13,17 @@
 
 const auth0 = require("auth0");
 
+/**
+ * @typedef {import('./types/auth0-actions').Event} Event
+ * @typedef {import('./types/auth0-actions').Api} Api
+ */
+
+/**
+ * Auth0 Pre User Registration Action Handler
+ * @param {Event} event - The Auth0 event object
+ * @param {Api} api - The Auth0 API object
+ * @returns {Promise<void>}
+ */
 exports.onExecutePreUserRegistration = async (event, api) => {
   const CLIENT_CONNECTIONS_DENYLIST = [
     // Matrix, IAM-1617
@@ -43,10 +54,15 @@ exports.onExecutePreUserRegistration = async (event, api) => {
     domain,
     clientId: event.secrets.mgmtClientId,
     clientSecret: event.secrets.mgmtClientSecret,
-    scope: "read:users",
   });
 
   // On an API error we default to doors closed.
+  /**
+   * Check if a user exists by email
+   * @param {import('auth0').ManagementClient} mgmt - Auth0 Management Client
+   * @param {string} email - User email to check
+   * @returns {Promise<boolean>} - True if user exists
+   */
   const userExists = async (mgmt, email) => {
     try {
       const response = await mgmt.usersByEmail.getByEmail({
@@ -59,11 +75,13 @@ exports.onExecutePreUserRegistration = async (event, api) => {
   };
 
   // The user exists already! Let them in.
-  if (
-    (await userExists(mgmt, event.user.email)) ||
-    (await userExists(mgmt, event.user.email.toLowerCase()))
-  ) {
-    return;
+  if (event.user.email) {
+    const userExistsOriginal = await userExists(mgmt, event.user.email);
+    const userExistsLowerCase = await userExists(mgmt, event.user.email.toLowerCase());
+    
+    if (userExistsOriginal || userExistsLowerCase) {
+      return;
+    }
   }
 
   return api.access.deny(

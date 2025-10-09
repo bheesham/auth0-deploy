@@ -3,6 +3,17 @@ const YAML = require("js-yaml");
 const jwt = require("jsonwebtoken");
 const AWS = require("aws-sdk");
 
+/**
+ * @typedef {import('./types/auth0-actions').Event} Event
+ * @typedef {import('./types/auth0-actions').Api} Api
+ */
+
+/**
+ * Auth0 Post Login Action Handler for Access Rules
+ * @param {Event} event - The Auth0 event object
+ * @param {Api} api - The Auth0 API object  
+ * @returns {Promise<void>}
+ */
 exports.onExecutePostLogin = async (event, api) => {
   console.log("Running actions:", "accessRules");
 
@@ -29,10 +40,10 @@ exports.onExecutePostLogin = async (event, api) => {
         .getSecretValue({ SecretId: secretPath })
         .promise();
       // handle string or binary
-      if ("SecretString" in data) {
+      if ("SecretString" in data && data.SecretString) {
         return JSON.parse(data.SecretString);
-      } else {
-        let buff = Buffer.from(data.SecretBinary, "base64");
+      } else if ("SecretBinary" in data && data.SecretBinary) {
+        let buff = Buffer.from(String(data.SecretBinary), "base64");
         return buff.toString("ascii");
       }
     } catch (err) {
@@ -50,6 +61,10 @@ exports.onExecutePostLogin = async (event, api) => {
   // @rcontext the current Auth0 rule context (passed from the rule)
   // Returns rcontext with redirect set to the error
 
+  /**
+   * @param {string} code
+   * @param {string} [prefered_connection_arg]
+   */
   const postError = (code, prefered_connection_arg) => {
     try {
       const prefered_connection = prefered_connection_arg || ""; // Optional arg
@@ -66,7 +81,7 @@ exports.onExecutePostLogin = async (event, api) => {
           exp: Math.floor(Date.now() / 1000) + 3600,
           iat: Math.floor(Date.now() / 1000) - 30,
           preferred_connection_name: prefered_connection,
-          redirect_uri: event.transaction.redirect_uri,
+          redirect_uri: event.transaction?.redirect_uri,
         },
         skey,
         { algorithm: "RS256" }
@@ -90,7 +105,7 @@ exports.onExecutePostLogin = async (event, api) => {
       `User primary email NOT verified, refusing login for ${event.user.email}`
     );
     // This post error is broken in sso dashboard
-    postError("primarynotverified", event, api, jwt, jwtMsgsRsaSkey);
+    postError("primarynotverified");
     return;
   }
 
@@ -110,12 +125,21 @@ exports.onExecutePostLogin = async (event, api) => {
   };
 
   // Check if array A has any occurrence from array B
+  /**
+   * @param {any[]} A
+   * @param {any[]} B
+   */
   const hasCommonElements = (A, B) => {
-    return A.some((element) => B.includes(element));
+    return A.some((/** @type {any} */ element) => B.includes(element));
   };
 
   // Return a single identity by connection name, from the user structure
+  /**
+   * @param {string} connection
+   */
   const getProfileData = (connection) => {
+    if (!event.user.identities) return undefined;
+    
     var i = 0;
     for (i = 0; i < event.user.identities.length; i++) {
       var cid = event.user.identities[i];
@@ -128,11 +152,17 @@ exports.onExecutePostLogin = async (event, api) => {
 
   // Sometimes we need to add custom claims to the various tokens we hand
   // out.
+  /**
+   * @param {string[]} groups
+   */
   const groupsSetCustomClaims = (groups) => {
     // If the only scopes requested are neither profile nor any scope beginning with
     // https:// then do not overload with custom claims
-    const scopes_requested = event.transaction.requested_scopes || [];
+    const scopes_requested = event.transaction?.requested_scopes || [];
 
+    /**
+     * @param {string} scope
+     */
     let fixup_needed = (scope) => {
       return scope === "profile" || scope.startsWith("https://");
     };
@@ -156,7 +186,7 @@ exports.onExecutePostLogin = async (event, api) => {
   // evaluation.
   const groupsGather = () => {
     // Ensure we have the correct group data
-    const app_metadata_groups = event.user.app_metadata.groups || [];
+    const app_metadata_groups = event.user.app_metadata?.groups || [];
     const ldap_groups = event.user.ldap_groups || [];
     const user_groups = event.user.groups || [];
     // With account linking its possible that LDAP is not the main account on contributor LDAP accounts
@@ -164,15 +194,17 @@ exports.onExecutePostLogin = async (event, api) => {
     let _identity;
     let identityGroups = [];
     // Iterate over each identity
-    for (let x = 0, len = event.user.identities.length; x < len; x++) {
-      // Get profile for the given identity
-      _identity = event.user.identities[x];
-      // If the identity contains profileData
-      if ("profileData" in _identity) {
-        // If profileData contains a groups array
-        if ("groups" in _identity.profileData) {
-          // Merge the group arry into identityGroups
-          identityGroups.push(..._identity.profileData.groups);
+    if (event.user.identities) {
+      for (let x = 0, len = event.user.identities.length; x < len; x++) {
+        // Get profile for the given identity
+        _identity = event.user.identities[x];
+        // If the identity contains profileData
+        if ("profileData" in _identity && _identity.profileData) {
+          // If profileData contains a groups array
+          if ("groups" in _identity.profileData) {
+            // Merge the group arry into identityGroups
+            identityGroups.push(..._identity.profileData.groups);
+          }
         }
       }
     }
@@ -190,6 +222,9 @@ exports.onExecutePostLogin = async (event, api) => {
     );
   };
 
+  /**
+   * @param {string} reason
+   */
   const deny = (reason) => {
     return {
       granted: false,
@@ -200,6 +235,11 @@ exports.onExecutePostLogin = async (event, api) => {
   };
 
   // Process the access cache decision
+  /**
+   * @param {string[]} groups
+   * @param {any[]} access_rules
+   * @param {any} access_file_conf
+   */
   const access_decision = (groups, access_rules, access_file_conf) => {
     // This is used for authorized user/groups
     let authorized = false;
@@ -209,7 +249,7 @@ exports.onExecutePostLogin = async (event, api) => {
     let required_aal = "MEDIUM";
 
     const apps = access_rules.filter(
-      (a) =>
+      (/** @type {any} */ a) =>
         (a.application.client_id ?? "").indexOf(event.client.client_id) >= 0
     );
 
@@ -300,7 +340,7 @@ exports.onExecutePostLogin = async (event, api) => {
 
     // Allow certain LDAP service accounts to fake their MFA. For all other LDAPi accounts, enforce MFA
     if (event.connection.strategy === "ad") {
-      if (mfaBypassAccounts.includes(event.user.email)) {
+      if (event.user.email && mfaBypassAccounts.includes(event.user.email)) {
         console.log(
           `LDAP service account (${event.user.email}) is allowed to bypass MFA`
         );
@@ -444,12 +484,15 @@ exports.onExecutePostLogin = async (event, api) => {
   };
 
   // This function pulls the apps.yml and returns a promise to yield the application list
+  /**
+   * @param {string} url
+   */
   async function getAppsYaml(url) {
     try {
       const response = await fetch(url);
       const data = await response.text();
       const yamlContent = YAML.load(data);
-      return yamlContent.apps;
+      return (/** @type {any} */ (yamlContent)).apps;
     } catch (error) {
       console.error("Error fetching apps.yml:", error);
       throw error;
@@ -464,24 +507,30 @@ exports.onExecutePostLogin = async (event, api) => {
     const decision = access_decision(groups, appsYaml, access_file_conf);
 
     if (decision.granted) {
-      if (decision.enableDuo) {
+      if ('enableDuo' in decision && decision.enableDuo) {
         api.multifactor.enable("duo", {
           providerOptions: duoConfig,
           allowRememberBrowser: true,
         });
       }
       // Set groups, AAI, and AAL claims in idToken
-      api.idToken.setCustomClaim(`${namespace}/AAI`, decision.aai);
-      api.idToken.setCustomClaim(`${namespace}/AAL`, decision.aal);
+      if ('aai' in decision) {
+        api.idToken.setCustomClaim(`${namespace}/AAI`, decision.aai);
+      }
+      if ('aal' in decision) {
+        api.idToken.setCustomClaim(`${namespace}/AAL`, decision.aal);
+      }
       groupsSetCustomClaims(groups);
       return;
     }
 
     // Go back to the shadow.  You shall not pass!
-    return postError(decision.denied.reason);
+    if ('denied' in decision) {
+      return postError(decision.denied.reason);
+    }
   } catch (err) {
     // All error should be caught here and we return the callback handler with the error
     console.log("AccessRules:", err);
-    return api.access.deny(err);
+    return api.access.deny(String(err));
   }
 };

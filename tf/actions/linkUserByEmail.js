@@ -14,6 +14,17 @@
 
 const auth0Sdk = require("auth0");
 
+/**
+ * @typedef {import('./types/auth0-actions').Event} Event
+ * @typedef {import('./types/auth0-actions').Api} Api
+ */
+
+/**
+ * Auth0 Post Login Action Handler - Link Users by Email
+ * @param {Event} event - The Auth0 event object
+ * @param {Api} api - The Auth0 API object
+ * @returns {Promise<void>}
+ */
 exports.onExecutePostLogin = async (event, api) => {
   console.log("Running actions:", "linkUsersByEmail");
 
@@ -34,7 +45,6 @@ exports.onExecutePostLogin = async (event, api) => {
     domain: mgmtAuth0Domain,
     clientId: event.secrets.mgmtClientId,
     clientSecret: event.secrets.mgmtClientSecret,
-    scope: "update:users",
   });
 
   // Since email addresses within auth0 are allowed to be mixed case and the /user-by-email search endpoint
@@ -44,16 +54,19 @@ exports.onExecutePostLogin = async (event, api) => {
   const searchMultipleEmailCases = async () => {
     let userAccountsFound = [];
 
-    // Push the
+    // We already checked email exists above, so we can safely use it
+    const userEmail = /** @type {string} */ (event.user.email);
+    
+    // Push the primary email search
     userAccountsFound.push(
-      mgmtClient.usersByEmail.getByEmail({ email: event.user.email })
+      mgmtClient.usersByEmail.getByEmail({ email: userEmail })
     );
 
     // if this user is mixed case, we need to also search for the lower case equivalent
-    if (event.user.email !== event.user.email.toLowerCase()) {
+    if (userEmail !== userEmail.toLowerCase()) {
       userAccountsFound.push(
         mgmtClient.usersByEmail.getByEmail({
-          email: event.user.email.toLowerCase(),
+          email: userEmail.toLowerCase(),
         })
       );
     }
@@ -62,13 +75,18 @@ exports.onExecutePostLogin = async (event, api) => {
     const allJSONResponses = await Promise.all(userAccountsFound);
 
     // flatten the array of arrays to get one array of profiles
+    /** @type {any[]} */
     const mergedDataProfiles = allJSONResponses.reduce((acc, response) => {
-      return acc.concat(response.data);
-    }, []);
+      acc.push(.../** @type {any[]} */ (response.data));
+      return acc;
+    }, /** @type {any[]} */ ([]));
 
     return mergedDataProfiles;
   };
 
+  /**
+   * @param {any} otherProfile - The other user profile to link
+   */
   const linkAccount = async (otherProfile) => {
     // sanity check if both accounts have LDAP as primary
     // we should NOT link these accounts and simply allow the user to continue logging in.
@@ -119,7 +137,9 @@ exports.onExecutePostLogin = async (event, api) => {
 
       // Auth0 Action api object provides a method for updating the current
       // authenticated user to the new user_id after account linking has taken place
-      api.authentication.setPrimaryUser(primaryUser.user_id);
+      if (api.authentication.setPrimaryUser) {
+        api.authentication.setPrimaryUser(primaryUser.user_id);
+      }
     } catch (err) {
       console.log("An unknown error occurred while linking accounts: " + err);
       throw err;
@@ -164,7 +184,7 @@ exports.onExecutePostLogin = async (event, api) => {
     }
   } catch (err) {
     console.log("An error occurred while linking accounts: " + err);
-    return api.access.deny(err);
+    return api.access.deny(String(err));
   }
 
   return;

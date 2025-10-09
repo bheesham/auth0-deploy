@@ -2,10 +2,27 @@
 const jwt = require("jsonwebtoken");
 const AWS = require("aws-sdk");
 
+/**
+ * @typedef {import('./types/auth0-actions').Event} Event
+ * @typedef {import('./types/auth0-actions').Api} Api
+ */
+
+/**
+ * Auth0 Post Login Action Handler - Ensure LDAP Users Use LDAP
+ * @param {Event} event - The Auth0 event object
+ * @param {Api} api - The Auth0 API object
+ * @returns {Promise<void>}
+ */
 exports.onExecutePostLogin = async (event, api) => {
   console.log("Running actions:", "ensureLdapLoginsUseLdap");
 
   // Retrieve and return a secret from AWS Secrets Manager
+  /**
+   * @param {typeof import('aws-sdk')} AWS - AWS SDK
+   * @param {string} accessKeyId - AWS access key ID
+   * @param {string} secretAccessKey - AWS secret access key
+   * @returns {Promise<any>} Secret data
+   */
   const getSecrets = async (AWS, accessKeyId, secretAccessKey) => {
     try {
       if (!accessKeyId || !secretAccessKey) {
@@ -28,11 +45,13 @@ exports.onExecutePostLogin = async (event, api) => {
         .getSecretValue({ SecretId: secretPath })
         .promise();
       // handle string or binary
-      if ("SecretString" in data) {
+      if ("SecretString" in data && data.SecretString) {
         return JSON.parse(data.SecretString);
-      } else {
-        let buff = Buffer.from(data.SecretBinary, "base64");
+      } else if (data.SecretBinary) {
+        let buff = Buffer.from(/** @type {string} */ (data.SecretBinary), "base64");
         return buff.toString("ascii");
+      } else {
+        throw new Error("No secret value found");
       }
     } catch (err) {
       console.log("getSecrets:", err);
@@ -48,6 +67,10 @@ exports.onExecutePostLogin = async (event, api) => {
   // postError(code)
   // @code string with an error code for the SSO Dashboard to display
   // Returns rcontext with redirect set to the error
+  /**
+   * @param {string} code - Error code
+   * @param {string} [prefered_connection_arg] - Preferred connection
+   */
   const postError = (code, prefered_connection_arg) => {
     try {
       const prefered_connection = prefered_connection_arg || ""; // Optional arg
@@ -64,7 +87,7 @@ exports.onExecutePostLogin = async (event, api) => {
           exp: Math.floor(Date.now() / 1000) + 3600,
           iat: Math.floor(Date.now() / 1000) - 30,
           preferred_connection_name: prefered_connection,
-          redirect_uri: event.transaction.redirect_uri,
+          redirect_uri: event.transaction?.redirect_uri || "",
         },
         skey,
         { algorithm: "RS256" }
@@ -122,7 +145,7 @@ exports.onExecutePostLogin = async (event, api) => {
   if (event.connection.strategy !== "ad") {
     for (let domain of MOZILLA_STAFF_DOMAINS) {
       // we need to sanitize the email address to lowercase before matching so we can catch users with upper/mixed case email addresses
-      if (event.user.email.toLowerCase().endsWith(domain)) {
+      if (event.user.email && event.user.email.toLowerCase().endsWith(domain)) {
         const msg = `Staff or LDAP user attempted to login with the wrong login method. We only allow ad (LDAP) for staff: ${event.user.email}`;
         console.log(msg);
         postError("staffmustuseldap");

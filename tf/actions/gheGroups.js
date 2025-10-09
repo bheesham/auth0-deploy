@@ -1,3 +1,14 @@
+/**
+ * @typedef {import('./types/auth0-actions').Event} Event
+ * @typedef {import('./types/auth0-actions').Api} Api
+ */
+
+/**
+ * Auth0 Post Login Action Handler - GitHub Enterprise Groups Management
+ * @param {Event} event - The Auth0 event object
+ * @param {Api} api - The Auth0 API object
+ * @returns {Promise<void>}
+ */
 exports.onExecutePostLogin = async (event, api) => {
   console.log("Running action:", "gheGroups");
 
@@ -106,7 +117,7 @@ exports.onExecutePostLogin = async (event, api) => {
   };
 
   // ClientID isn't mapped here, return callback() and proceed rules processing
-  if (applicationGroupMapping[event.client.client_id] === undefined) {
+  if (!(event.client.client_id in applicationGroupMapping)) {
     console.log("Not mapped");
     return;
   }
@@ -124,13 +135,13 @@ exports.onExecutePostLogin = async (event, api) => {
       "personapi_bearer_token_creation_time"
     );
     // If we have the bearer token stored, we don't need to fetch it again
-    if (cachedBearerToken?.value && cachedBearerTokenCreationTime?.value) {
+    if (cachedBearerToken && cachedBearerTokenCreationTime) {
       if (
-        Date.now() - Number(cachedBearerTokenCreationTime.value) <
+        Date.now() - Number(cachedBearerTokenCreationTime) <
         PERSONAPI_BEARER_TOKEN_REFRESH_AGE
       ) {
         console.log("Returning cached token", cachedBearerToken);
-        return cachedBearerToken.value;
+        return cachedBearerToken;
       }
     }
 
@@ -157,16 +168,19 @@ exports.onExecutePostLogin = async (event, api) => {
       const data = await response.json();
 
       // store the bearer token in the global object, so it's not constantly retrieved
-      api.cache.set("personapi_bearer_token", data.access_token);
+      api.cache.set("personapi_bearer_token", (/** @type {any} */ (data)).access_token);
       api.cache.set("personapi_bearer_token_creation_time", String(Date.now()));
 
       console.log(`Successfully retrieved bearer token from Auth0`);
-      return data.access_token;
+      return (/** @type {any} */ (data)).access_token;
     } catch (err) {
       throw Error(`Unable to retrieve bearer token from Auth0: ${err}`);
     }
   };
 
+  /**
+   * @param {string} bearerToken
+   */
   const getPersonProfile = async (bearerToken) => {
     try {
       // Retrieve a bearer token to gain access to the person api
@@ -194,6 +208,9 @@ exports.onExecutePostLogin = async (event, api) => {
     }
   };
 
+  /**
+   * @param {string} errorCode
+   */
   const bail = (errorCode) => {
     const gheWikiUrl = new URL("https://wiki.mozilla.org/GitHub/SAML_issues");
     gheWikiUrl.searchParams.set("auth", event.tenant.id);
@@ -203,6 +220,9 @@ exports.onExecutePostLogin = async (event, api) => {
 
   // Confirm the user has a githubUsername stored in mozillians and they have
   // the correct access groups.
+  /**
+   * @param {any} profile
+   */
   const processProfile = (profile) => {
     // Get githubUsername from person api, otherwise we'll redirect
     let githubUsername;
@@ -223,25 +243,24 @@ exports.onExecutePostLogin = async (event, api) => {
     }
     // Confirm the user has the group defined from mozillians matching the
     // application's client id.
-    if (
-      event.user.app_metadata.groups?.includes(
-        applicationGroupMapping[event.client.client_id]
-      )
-    ) {
+    const userGroups = event.user.app_metadata?.groups || [];
+    const requiredGroup = /** @type {any} */ (applicationGroupMapping)[event.client.client_id];
+    
+    if (userGroups.includes(requiredGroup)) {
       console.log(
         `Granting access for ${githubUsername} (member of the mozillians GHE group)`
       );
       return;
     }
     // Or, the member is a part of the security managers group.
-    if (event.user.app_metadata.groups?.includes(GHE_SECURITY_MANAGERS_GROUP)) {
+    if (userGroups.includes(GHE_SECURITY_MANAGERS_GROUP)) {
       console.log(
         `Granting access for ${githubUsername} (member of the security managers group)`
       );
       return;
     }
     // Or, the member is a part of the admins group.
-    if (event.user.app_metadata.groups?.includes(GHE_ADMINS_GROUP)) {
+    if (userGroups.includes(GHE_ADMINS_GROUP)) {
       console.log(
         `Granting access for ${githubUsername} (member of the admins group)`
       );
@@ -261,6 +280,6 @@ exports.onExecutePostLogin = async (event, api) => {
     return processProfile(userProfile);
   } catch (err) {
     console.error(err);
-    return api.access.deny(err);
+    return api.access.deny(String(err));
   }
 };

@@ -1,5 +1,16 @@
 const AWS = require("aws-sdk");
 
+/**
+ * @typedef {import('./types/auth0-actions').Event} Event
+ * @typedef {import('./types/auth0-actions').Api} Api
+ */
+
+/**
+ * Auth0 Post Login Action Handler for AWS SAML
+ * @param {Event} event - The Auth0 event object
+ * @param {Api} api - The Auth0 API object
+ * @returns {Promise<void>}
+ */
 exports.onExecutePostLogin = async (event, api) => {
   console.log("Running actions:", "awsSaml");
 
@@ -150,19 +161,29 @@ exports.onExecutePostLogin = async (event, api) => {
   const AWS_GROUPS = paramObj.awsGroups;
 
   // Filter the users Auth0 groups down to only those mapped to AWS groups
+  /**
+   * @param {string[]} groups
+   */
   function filterAWSGroups(groups) {
-    var filteredGroups = groups.filter((x) => AWS_GROUPS.includes(x));
+    var filteredGroups = groups.filter((/** @type {string} */ x) => AWS_GROUPS.includes(x));
     return filteredGroups;
   }
 
+  /**
+   * @param {string[]} proposedGroups
+   * @param {string[]} existingGroups
+   */
   function userAuth0Groups(proposedGroups, existingGroups) {
-    var addToGroup = proposedGroups.filter((x) => !existingGroups.includes(x));
+    var addToGroup = proposedGroups.filter((/** @type {string} */ x) => !existingGroups.includes(x));
     var removeFromGroup = existingGroups.filter(
-      (x) => !proposedGroups.includes(x)
+      (/** @type {string} */ x) => !proposedGroups.includes(x)
     );
     return { addToGroup: addToGroup, removeFromGroup: removeFromGroup };
   }
 
+  /**
+   * @param {string[]} addToGroup
+   */
   function createGroupMemberships(addToGroup) {
     var creationPromises = [];
     for (var groupId of addToGroup) {
@@ -178,6 +199,9 @@ exports.onExecutePostLogin = async (event, api) => {
     return Promise.all(creationPromises);
   }
 
+  /**
+   * @param {string[]} removeMembershipId
+   */
   function removeGroupMemberships(removeMembershipId) {
     var removalPromises = [];
     for (var membershipId of removeMembershipId) {
@@ -191,6 +215,9 @@ exports.onExecutePostLogin = async (event, api) => {
   }
 
   function fetchAWSUUID() {
+    if (!userName) {
+      throw new Error("userName is required");
+    }
     var params = {
       Filters: [
         {
@@ -204,6 +231,9 @@ exports.onExecutePostLogin = async (event, api) => {
     return userId; // returns promise
   }
 
+  /**
+   * @param {string} userUUID
+   */
   function fetchUsersAWSGroups(userUUID) {
     var params = {
       IdentityStoreId: IdentityStoreId,
@@ -217,6 +247,9 @@ exports.onExecutePostLogin = async (event, api) => {
     return userMembership;
   }
 
+  /**
+   * @param {any[]} groupList
+   */
   function fetchGroupNameMap(groupList) {
     var groupPromises = [];
     for (var group of groupList) {
@@ -229,6 +262,9 @@ exports.onExecutePostLogin = async (event, api) => {
     return Promise.all(groupPromises);
   }
 
+  /**
+   * @param {string[]} groupList
+   */
   function getGroupIds(groupList) {
     var promisedGroupIds = [];
     for (var groupName of groupList) {
@@ -268,7 +304,7 @@ exports.onExecutePostLogin = async (event, api) => {
   // Main
   try {
     // Get the users group list filtered down to only AWS related groups
-    const proposedGroups = filterAWSGroups(event.user.groups);
+    const proposedGroups = filterAWSGroups(event.user.groups || []);
 
     // Fetch users AWS UUID
     const userObjList = await fetchAWSUUID();
@@ -287,7 +323,7 @@ exports.onExecutePostLogin = async (event, api) => {
     const usersAWSGroupNames = await fetchGroupNameMap(
       usersAWSGroups.GroupMemberships
     );
-    const existingGroups = usersAWSGroupNames.map((item) => item.DisplayName);
+    const existingGroups = usersAWSGroupNames.map((item) => item.DisplayName).filter((name) => name != null);
 
     // Diff the proposed groups and the existing groups
     const groupActionList = userAuth0Groups(proposedGroups, existingGroups);
@@ -310,23 +346,25 @@ exports.onExecutePostLogin = async (event, api) => {
 
       // From the groupsmembership object, filter and map group ids to be removed from
       const removeGroupIds = usersAWSGroupNames
-        .filter((item) => removeFromGroup.includes(item.DisplayName))
-        .map((item) => item.GroupId);
+        .filter((item) => item.DisplayName && removeFromGroup.includes(item.DisplayName))
+        .map((item) => item.GroupId)
+        .filter((id) => id != null);
       const removeMembershipId = usersAWSGroups.GroupMemberships.filter(
-        (item) => removeGroupIds.includes(item.GroupId)
-      ).map((item) => item.MembershipId);
+        (item) => item.GroupId && removeGroupIds.includes(item.GroupId)
+      ).map((item) => item.MembershipId)
+      .filter((id) => id != null);
 
       // Create group memberships
       const addPromise = createGroupMemberships(addToGroupIds);
 
       // Delete group memberships
       const removePromise = removeGroupMemberships(removeMembershipId);
-      return Promise.all([addPromise, removePromise]);
+      await Promise.all([addPromise, removePromise]);
     }
 
     return;
   } catch (err) {
     console.error(err);
-    return api.access.deny(err);
+    return api.access.deny(String(err));
   }
 };
