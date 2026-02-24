@@ -121,7 +121,7 @@ exports.onExecutePostLogin = async (event, api) => {
       // authenticated user to the new user_id after account linking has taken place
       api.authentication.setPrimaryUser(primaryUser.user_id);
     } catch (err) {
-      console.log("An unknown error occurred while linking accounts:", err);
+      console.error("An unknown error occurred while linking accounts:", err);
       throw err;
     }
 
@@ -163,7 +163,7 @@ exports.onExecutePostLogin = async (event, api) => {
       throw new Error(error_message);
     }
   } catch (err) {
-    console.log("An error occurred while linking accounts:", err);
+    console.error("An error occurred while linking accounts:", err);
     return api.access.deny(err.message || String(err));
   }
 
