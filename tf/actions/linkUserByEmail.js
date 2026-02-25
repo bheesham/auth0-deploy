@@ -146,15 +146,24 @@ exports.onExecutePostLogin = async (event, api) => {
   });
 
   // Main
+  let candidateUserAccountList;
+
   try {
     // Search for multiple accounts of the same user to link
-    let userAccountList = await searchMultipleEmailCases(
+    candidateUserAccountList = await searchMultipleEmailCases(
       mgmtClient,
       event.user.email
     );
+  } catch (err) {
+    console.err(`Could not look up email for ${event.user.email}`);
+    return api.access.deny("Please contact support or the IAM team. (err=link-lookup)");
+  }
 
+  try {
     // Ignore non-verified users
-    userAccountList = userAccountList.filter((u) => u.email_verified);
+    let userAccountList = candidateUserAccountList.filter(
+      (u) => u.email_verified
+    );
 
     if (userAccountList.length <= 1) {
       // The user logged in with an identity which is the only one Auth0 knows about
