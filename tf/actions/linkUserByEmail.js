@@ -159,45 +159,43 @@ exports.onExecutePostLogin = async (event, api) => {
     return api.access.deny("Please contact support or the IAM team. (err=link-lookup)");
   }
 
-  try {
-    // Ignore non-verified users
-    let userAccountList = candidateUserAccountList.filter(
-      (u) => u.email_verified
-    );
+  // Ignore non-verified users
+  let userAccountList = candidateUserAccountList.filter(
+    (u) => u.email_verified
+  );
 
-    if (userAccountList.length <= 1) {
-      // The user logged in with an identity which is the only one Auth0 knows about
-      // or no data returned
-      // Do not perform any account linking
-      return;
-    }
-
-    if (userAccountList.length === 2) {
-      // Auth0 is aware of 2 identities with the same email address which means
-      // that the user just logged in with a new identity that hasn't been linked
-      // into the other existing identity.  Here we pass the other account to the
-      // linking function
-
-      await linkAccount(
-        api,
-        mgmtClient,
-        event.user,
-        userAccountList.filter((u) => u.user_id !== event.user.user_id)[0]
-      );
-    } else {
-      // data.length is > 2 which, post November 2020 when all identities were
-      // force linked manually, shouldn't be possible
-      var error_message =
-        `Error linking account ${event.user.user_id} as there are ` +
-        `over 2 identities with the email address ${event.user.email} ` +
-        userAccountList.map((x) => x.user_id).join();
-      console.error(error_message);
-      throw new Error(error_message);
-    }
-  } catch (err) {
-    console.error("An error occurred while linking accounts:", err);
-    return api.access.deny(err.message || String(err));
+  if (userAccountList.length <= 1) {
+    // The user logged in with an identity which is the only one Auth0 knows about
+    // or no data returned
+    // Do not perform any account linking
+    return;
   }
 
-  return;
+  if (userAccountList.length === 2) {
+    const candidateUserId = userAccountList.filter(
+      (u) => u.user_id !== event.user.user_id
+    )[0];
+    try {
+      return await linkAccount(api, mgmtClient, event.user, candidateUserId);
+    } catch (err) {
+      console.error(
+        `Could not link ${event.user.user_id} with ${candidateUserId}`
+      );
+      return api.access.deny("Please contact support or the IAM team. (err=link-link)");
+    }
+  }
+
+  // Auth0 is aware of 2 identities with the same email address which means
+  // that the user just logged in with a new identity that hasn't been linked
+  // into the other existing identity.  Here we pass the other account to the
+  // linking function
+
+  // data.length is > 2 which, post November 2020 when all identities were
+  // force linked manually, shouldn't be possible
+  var error_message =
+    `Error linking account ${event.user.user_id} as there are ` +
+    `over 2 identities with the email address ${event.user.email} ` +
+    userAccountList.map((x) => x.user_id).join();
+  console.error(error_message);
+  return api.access.deny(error_message);
 };
