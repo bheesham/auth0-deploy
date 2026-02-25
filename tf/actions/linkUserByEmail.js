@@ -112,7 +112,12 @@ async function linkAccount(api, mgmtClient, originalProfile, otherProfile) {
       }
     );
   } catch (err) {
-    console.error("An unknown error occurred while linking accounts:", err);
+    console.error(
+      "An unknown error occurred while linking accounts:",
+      err.errorCode,
+      err.statusCode,
+      err.error
+    );
     throw err;
   }
   // Auth0 Action api object provides a method for updating the current
@@ -154,7 +159,7 @@ exports.onExecutePostLogin = async (event, api) => {
       event.user.email
     );
   } catch (err) {
-    console.err(`Could not look up email for ${event.user.email}`);
+    console.error(`Could not look up email for ${event.user.email}`);
     return api.access.deny(
       "Please contact support or the IAM team. (err=link-lookup)"
     );
