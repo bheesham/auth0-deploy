@@ -44,6 +44,64 @@ async function searchMultipleEmailCases(mgmtClient, email) {
   return mergedDataProfiles;
 }
 
+async function linkAccount(api, mgmtClient, originalProfile, otherProfile) {
+  // sanity check if both accounts have LDAP as primary
+  // we should NOT link these accounts and simply allow the user to continue logging in.
+  if (
+    originalProfile.user_id.startsWith("ad|Mozilla-LDAP") &&
+    otherProfile.user_id.startsWith("ad|Mozilla-LDAP")
+  ) {
+    console.error(
+      `Error: both ${originalProfile.user_id} and ${otherProfile.user_id} are LDAP Primary accounts. Linking will not occur.`
+    );
+    return; // Continue with user login without account linking
+  }
+
+  // LDAP takes priority being the primary identity
+  // So we need to determine if one or neither are LDAP
+  // If both are non-primary, linking order doesn't matter
+  let primaryUser;
+  let secondaryUser;
+
+  if (originalProfile.user_id.startsWith("ad|Mozilla-LDAP")) {
+    primaryUser = originalProfile;
+    secondaryUser = otherProfile;
+  } else {
+    primaryUser = otherProfile;
+    secondaryUser = originalProfile;
+  }
+
+  // Link the secondary account into the primary account
+  console.log(
+    `Linking secondary identity ${secondaryUser.user_id} into primary identity ${primaryUser.user_id}`
+  );
+
+  // We no longer keep the user_metadata nor app_metadata from the secondary account
+  // that is being linked.  If the primary account is LDAP, then its existing
+  // metadata should prevail.  And in the case of both, primary and secondary being
+  // non-ldap, account priority does not matter and neither does the metadata of
+  // the secondary account.
+
+  // Link the accounts
+  try {
+    await mgmtClient.users.link(
+      { id: String(primaryUser.user_id) },
+      {
+        provider: secondaryUser.identities[0].provider,
+        user_id: secondaryUser.identities[0].user_id,
+      }
+    );
+
+    // Auth0 Action api object provides a method for updating the current
+    // authenticated user to the new user_id after account linking has taken place
+    api.authentication.setPrimaryUser(primaryUser.user_id);
+    return;
+  } catch (err) {
+    console.error("An unknown error occurred while linking accounts:", err);
+    throw err;
+  }
+}
+
 exports.onExecutePostLogin = async (event, api) => {
   console.log("Running actions:", "linkUsersByEmail");
 
@@ -66,65 +124,6 @@ exports.onExecutePostLogin = async (event, api) => {
     clientSecret: event.secrets.mgmtClientSecret,
     scope: "update:users",
   });
-
-  const linkAccount = async (otherProfile) => {
-    // sanity check if both accounts have LDAP as primary
-    // we should NOT link these accounts and simply allow the user to continue logging in.
-    if (
-      event.user.user_id.startsWith("ad|Mozilla-LDAP") &&
-      otherProfile.user_id.startsWith("ad|Mozilla-LDAP")
-    ) {
-      console.error(
-        `Error: both ${event.user.user_id} and ${otherProfile.user_id} are LDAP Primary accounts. Linking will not occur.`
-      );
-      return; // Continue with user login without account linking
-    }
-
-    // LDAP takes priority being the primary identity
-    // So we need to determine if one or neither are LDAP
-    // If both are non-primary, linking order doesn't matter
-    let primaryUser;
-    let secondaryUser;
-
-    if (event.user.user_id.startsWith("ad|Mozilla-LDAP")) {
-      primaryUser = event.user;
-      secondaryUser = otherProfile;
-    } else {
-      primaryUser = otherProfile;
-      secondaryUser = event.user;
-    }
-
-    // Link the secondary account into the primary account
-    console.log(
-      `Linking secondary identity ${secondaryUser.user_id} into primary identity ${primaryUser.user_id}`
-    );
-
-    // We no longer keep the user_metadata nor app_metadata from the secondary account
-    // that is being linked.  If the primary account is LDAP, then its existing
-    // metadata should prevail.  And in the case of both, primary and secondary being
-    // non-ldap, account priority does not matter and neither does the metadata of
-    // the secondary account.
-
-    // Link the accounts
-    try {
-      await mgmtClient.users.link(
-        { id: String(primaryUser.user_id) },
-        {
-          provider: secondaryUser.identities[0].provider,
-          user_id: secondaryUser.identities[0].user_id,
-        }
-      );
-
-      // Auth0 Action api object provides a method for updating the current
-      // authenticated user to the new user_id after account linking has taken place
-      api.authentication.setPrimaryUser(primaryUser.user_id);
-    } catch (err) {
-      console.error("An unknown error occurred while linking accounts:", err);
-      throw err;
-    }
-
-    return;
-  };
 
   // Main
   try {
@@ -151,6 +150,9 @@ exports.onExecutePostLogin = async (event, api) => {
       // linking function
 
       await linkAccount(
+        api,
+        mgmtClient,
+        event.user,
         userAccountList.filter((u) => u.user_id !== event.user.user_id)[0]
       );
     } else {
