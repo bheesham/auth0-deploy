@@ -111,15 +111,14 @@ async function linkAccount(api, mgmtClient, originalProfile, otherProfile) {
         user_id: secondaryUser.identities[0].user_id,
       }
     );
-
-    // Auth0 Action api object provides a method for updating the current
-    // authenticated user to the new user_id after account linking has taken place
-    api.authentication.setPrimaryUser(primaryUser.user_id);
-    return;
   } catch (err) {
     console.error("An unknown error occurred while linking accounts:", err);
     throw err;
   }
+  // Auth0 Action api object provides a method for updating the current
+  // authenticated user to the new user_id after account linking has taken place
+  api.authentication.setPrimaryUser(primaryUser.user_id);
+  return;
 }
 
 exports.onExecutePostLogin = async (event, api) => {
