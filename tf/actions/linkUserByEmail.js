@@ -156,7 +156,9 @@ exports.onExecutePostLogin = async (event, api) => {
     );
   } catch (err) {
     console.err(`Could not look up email for ${event.user.email}`);
-    return api.access.deny("Please contact support or the IAM team. (err=link-lookup)");
+    return api.access.deny(
+      "Please contact support or the IAM team. (err=link-lookup)"
+    );
   }
 
   // Ignore non-verified users
@@ -181,7 +183,9 @@ exports.onExecutePostLogin = async (event, api) => {
       console.error(
         `Could not link ${event.user.user_id} with ${candidateUserId}`
       );
-      return api.access.deny("Please contact support or the IAM team. (err=link-link)");
+      return api.access.deny(
+        "Please contact support or the IAM team. (err=link-link)"
+      );
     }
   }
 
