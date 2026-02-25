@@ -14,6 +14,36 @@
 
 const auth0Sdk = require("auth0");
 
+// Since email addresses within auth0 are allowed to be mixed case and the /user-by-email search endpoint
+// is case sensitive, we need to search for both situations.  In the first search we search by "this" users email
+// which might be mixed case (or not).  Our second search is for the lowercase equivalent but only if two searches
+// would be different.
+async function searchMultipleEmailCases(mgmtClient, email) {
+  let userAccountsFound = [];
+
+  // Push the
+  userAccountsFound.push(mgmtClient.usersByEmail.getByEmail({ email }));
+
+  // if this user is mixed case, we need to also search for the lower case equivalent
+  if (email !== email.toLowerCase()) {
+    userAccountsFound.push(
+      mgmtClient.usersByEmail.getByEmail({
+        email: email.toLowerCase(),
+      })
+    );
+  }
+
+  // await all json responses promises to resolve
+  const allJSONResponses = await Promise.all(userAccountsFound);
+
+  // flatten the array of arrays to get one array of profiles
+  const mergedDataProfiles = allJSONResponses.reduce((acc, response) => {
+    return acc.concat(response.data);
+  }, []);
+
+  return mergedDataProfiles;
+}
+
 exports.onExecutePostLogin = async (event, api) => {
   console.log("Running actions:", "linkUsersByEmail");
 
@@ -36,38 +66,6 @@ exports.onExecutePostLogin = async (event, api) => {
     clientSecret: event.secrets.mgmtClientSecret,
     scope: "update:users",
   });
-
-  // Since email addresses within auth0 are allowed to be mixed case and the /user-by-email search endpoint
-  // is case sensitive, we need to search for both situations.  In the first search we search by "this" users email
-  // which might be mixed case (or not).  Our second search is for the lowercase equivalent but only if two searches
-  // would be different.
-  const searchMultipleEmailCases = async () => {
-    let userAccountsFound = [];
-
-    // Push the
-    userAccountsFound.push(
-      mgmtClient.usersByEmail.getByEmail({ email: event.user.email })
-    );
-
-    // if this user is mixed case, we need to also search for the lower case equivalent
-    if (event.user.email !== event.user.email.toLowerCase()) {
-      userAccountsFound.push(
-        mgmtClient.usersByEmail.getByEmail({
-          email: event.user.email.toLowerCase(),
-        })
-      );
-    }
-
-    // await all json responses promises to resolve
-    const allJSONResponses = await Promise.all(userAccountsFound);
-
-    // flatten the array of arrays to get one array of profiles
-    const mergedDataProfiles = allJSONResponses.reduce((acc, response) => {
-      return acc.concat(response.data);
-    }, []);
-
-    return mergedDataProfiles;
-  };
 
   const linkAccount = async (otherProfile) => {
     // sanity check if both accounts have LDAP as primary
@@ -131,7 +129,10 @@ exports.onExecutePostLogin = async (event, api) => {
   // Main
   try {
     // Search for multiple accounts of the same user to link
-    let userAccountList = await searchMultipleEmailCases();
+    let userAccountList = await searchMultipleEmailCases(
+      mgmtClient,
+      event.user.email
+    );
 
     // Ignore non-verified users
     userAccountList = userAccountList.filter((u) => u.email_verified);
