@@ -145,8 +145,6 @@ exports.onExecutePostLogin = async (event, api) => {
       api.idToken.setCustomClaim("email_aliases", undefined);
       api.idToken.setCustomClaim("dn", undefined);
       api.idToken.setCustomClaim("organizationUnits", undefined);
-      api.idToken.setCustomClaim(`${namespace}/groups`, groups);
-
       const claimMsg =
         "Please refer to https://github.com/mozilla-iam/person-api in order to query Mozilla IAM CIS user profile data";
       api.idToken.setCustomClaim(`${namespace}/README_FIRST`, claimMsg);

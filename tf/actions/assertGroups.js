@@ -10,7 +10,6 @@
  * _everything_ related to groups should be here.
  *
  * TODO: port the other customizations over from samlMappings.js
- * TODO: port the id token assertion over from accessRules.js
  * TODO: without ^^^^^ this can't be merged.
  */
 const auth0 = require("auth0");
@@ -147,6 +146,12 @@ exports.onExecutePostLogin = async (event, api) => {
   if (event.transaction.protocol === "samlp") {
     await samlDo(event, api, saml, groupsFinal);
   } else {
-    api.idToken.setCustomClaim(JWT_CLAIM_GROUP, groupsFinal);
+    const scopesRequested = event.transaction.requested_scopes || [];
+    const shouldAddClaim = scopesRequested.some(
+      (s) => s === "profile" || s.startsWith("https://")
+    );
+    if (shouldAddClaim) {
+      api.idToken.setCustomClaim(JWT_CLAIM_GROUP, groupsFinal);
+    }
   }
 };

@@ -154,44 +154,6 @@ test("email account not verified", async () => {
   );
 });
 
-describe("Test group merges", () => {
-  test("Expect user.groups to be a merged list of multiple group lists", async () => {
-    _event.client.client_id = "client00000000000000000000000005";
-    _event.transaction.requested_scopes = ["email", "profile"];
-    _event.user.aai = ["2FA"];
-    _event.user.groups = ["groups_1", "groups_2"];
-    _event.user.ldap_groups = ["ldap_groups_1", "ldap_groups_2"];
-    _event.user.app_metadata.groups = [
-      "app_metadata_groups_1",
-      "app_metadata_groups_2",
-    ];
-
-    mergedGroups = [
-      "everyone",
-      "groups_1",
-      "groups_2",
-      "ldap_groups_1",
-      "ldap_groups_2",
-      "app_metadata_groups_1",
-      "app_metadata_groups_2",
-    ];
-    await onExecutePostLogin(_event, api);
-
-    // Ensure _user.groups is a subset of mergedGroups and vice versa
-    expect(_idToken["https://sso.mozilla.com/claim/groups"]).toEqual(
-      expect.arrayContaining(mergedGroups)
-    );
-    expect(mergedGroups).toEqual(
-      expect.arrayContaining(_idToken["https://sso.mozilla.com/claim/groups"])
-    );
-
-    // Additionally, check if they have the same length to ensure no duplicates
-    expect(_idToken["https://sso.mozilla.com/claim/groups"]).toHaveLength(
-      mergedGroups.length
-    );
-  });
-});
-
 describe("Client does not exist in apps.yml", () => {
   test("Client id does not exist and aai is 2FA; expect not allowed", async () => {
     _event.user.multifactor = ["duo"];
