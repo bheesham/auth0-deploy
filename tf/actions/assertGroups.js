@@ -53,6 +53,26 @@ const identity = (groups) => {
   };
 };
 
+// Groups: grants access to projects. These aren't that special, but do start
+// with `mozilliansorg_workato_workspace_group-`.
+//
+// The `prefix` const should be kept in sync with PeopleMo and apps.yml.  Since
+// PeopleMo only deals with groups, we have to split up, by some convention,
+// the difference between Roles and Groups as Workato expects them.
+const workatoWorkspace = (groups) => {
+  const prefix = "mozilliansorg_workato_workspace_group-";
+  const filteredGroups = Array.from(groups)
+    .filter((g) => g.startsWith(prefix))
+    .map((g) => g.slice(prefix.length));
+  return {
+    groups: [...filteredGroups],
+    saml: {
+      create: ["workato_user_groups"],
+      remove: [SAML_ATTRIBUTE_GROUP],
+    },
+  };
+};
+
 // Should return something in the shape of:
 //
 // ```
@@ -71,6 +91,8 @@ const customize = (clientId) => {
       return tines;
     case "x7TF6ZtJev4ktoHR4ObWmA9KeqGni6rq":
       return braintree;
+    case "JmJAOmGbtZsojMpFQC5fcmqghWHbuKrf":
+      return workatoWorkspace;
     default:
       return identity;
   }

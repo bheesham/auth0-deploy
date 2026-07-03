@@ -211,11 +211,6 @@ exports.onExecutePostLogin = async (event, api) => {
       api.samlResponse.setAttribute("cryptokey", cryptokey);
       break;
     case "JmJAOmGbtZsojMpFQC5fcmqghWHbuKrf": // Workato Workspace SSO
-      // The `*Prefix` consts should be kept in sync with PeopleMo and
-      // apps.yml. Since PeopleMo only deals with groups, we have to split
-      // up, by some convention, the difference between Roles and Groups as
-      // Workato expects them.
-      //
       // Roles: can be either an Admin, Manager, or Member of an environment.
       // For now, Bhee picked the easy route and default to Admin
       // privileges, which means the following PeopleMo groups are special:
@@ -223,20 +218,10 @@ exports.onExecutePostLogin = async (event, api) => {
       // * `mozilliansorg_workato_workspace_role-test`
       // * `mozilliansorg_workato_workspace_role-prod`
       //
-      // Groups: grants access to projects. These aren't that special, but do start with
-      // `mozilliansorg_workato_workspace_group-`.
-
-      // First the groups.
-      const workspaceGroupPrefix = "mozilliansorg_workato_workspace_group-";
-      const workspaceGroups = userGroups
-        .filter((g) => g.startsWith(workspaceGroupPrefix))
-        .map((g) => g.slice(workspaceGroupPrefix.length));
-      // We need to have at least one group defined.
-      if (!workspaceGroups.includes("default")) {
-        workspaceGroups.push("default");
-      }
-      api.samlResponse.setAttribute("workato_user_groups", workspaceGroups);
-      // Now the roles.
+      // The `prefix` const should be kept in sync with PeopleMo and apps.yml.
+      // Since PeopleMo only deals with groups, we have to split up, by some
+      // convention, the difference between Roles and Groups as Workato expects
+      // them.
       const workspaceRolePrefix = "mozilliansorg_workato_workspace_role-";
       const workspaceRoles = userGroups.filter((g) =>
         g.startsWith(workspaceRolePrefix)

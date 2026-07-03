@@ -143,3 +143,23 @@ describe("Braintree SAML tests", () => {
     }
   );
 });
+
+describe("Workato Workspace", () => {
+  const clientIDs = ["JmJAOmGbtZsojMpFQC5fcmqghWHbuKrf"];
+  test.each(clientIDs)(
+    "Ensure SAML configuration mappings for client %s",
+    async (clientID) => {
+      _event.transaction.protocol = "samlp";
+      _event.user.app_metadata = {
+        groups: ["mozilliansorg_workato_workspace_group-foobar"],
+      };
+      _event.client.client_id = clientID;
+      const expectedSamlAttributes = {
+        workato_user_groups: ["foobar", "everyone"],
+      };
+      await onExecutePostLogin(_event, api);
+      expect(api.samlResponse.setAttribute).toHaveBeenCalled();
+      expect(_samlAttributes).toEqual(expectedSamlAttributes);
+    }
+  );
+});
