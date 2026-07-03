@@ -168,8 +168,8 @@ describe("Workato Identity", () => {
   );
 });
 
-describe("Default attributes", () => {
-  test("Braintree example", async () => {
+describe("Extended SAML attributes", () => {
+  test("Braintree, which uses a custom groups mapping", async () => {
     auth0.ManagementClient = class {
       clients = {
         get: (clientId) => {
@@ -192,6 +192,32 @@ describe("Default attributes", () => {
     _event.client.client_id = "x7TF6ZtJev4ktoHR4ObWmA9KeqGni6rq";
     const expectedSamlAttributes = {
       roles: ["everyone"],
+    };
+    // Execute onExecutePostLogin
+    await onExecutePostLogin(_event, api);
+    expect(api.samlResponse.setAttribute).toHaveBeenCalled();
+    expect(_samlAttributes).toEqual(expectedSamlAttributes);
+  });
+
+  test("No custom mappings", async () => {
+    auth0.ManagementClient = class {
+      clients = {
+        get: (clientId) => {
+          return {
+            addons: {
+              samlp: {
+                mappings: {},
+              },
+            },
+          };
+        },
+      };
+    };
+    _event.transaction.protocol = "samlp";
+    _event.user.app_metadata = {};
+    _event.client.client_id = "cafebabe";
+    const expectedSamlAttributes = {
+      "http://schemas.xmlsoap.org/claims/Group": ["everyone"],
     };
     // Execute onExecutePostLogin
     await onExecutePostLogin(_event, api);
