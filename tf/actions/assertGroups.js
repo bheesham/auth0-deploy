@@ -8,9 +8,6 @@
  * We'll, of course, still need to access a user's groups for authz, but this
  * action's primary concern is ensuring RPs get an accurate list. So not
  * _everything_ related to groups should be here.
- *
- * TODO: port the other customizations over from samlMappings.js
- * TODO: without ^^^^^ this can't be merged.
  */
 const auth0 = require("auth0");
 
