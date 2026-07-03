@@ -9,6 +9,7 @@ variable "action_flow_dev" {
     "linkUserByEmail",
     "activateNewUsersInCIS",
     "OIDCConformanceWorkaround",
+    "assertGroups",
     "configurationDumper"
   ]
 }
@@ -25,5 +26,6 @@ variable "action_flow_prod" {
     "linkUserByEmail",
     "activateNewUsersInCIS",
     "OIDCConformanceWorkaround"
+    "assertGroups",
   ]
 }

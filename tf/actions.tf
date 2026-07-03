@@ -47,6 +47,10 @@ locals {
       id           = auth0_action.configurationDumper.id
       display_name = auth0_action.configurationDumper.name
     }
+    assertGroups = {
+      id           = auth0_action.assertGroups.id
+      display_name = auth0_action.assertGroups.name
+    }
   }
 
   action_flow = terraform.workspace == "prod" ? var.action_flow_prod : var.action_flow_dev
@@ -395,5 +399,32 @@ resource "auth0_action" "configurationDumper" {
   supported_triggers {
     id      = "post-login"
     version = "v3"
+  }
+}
+
+resource "auth0_action" "assertGroups" {
+  name    = format("assertGroups")
+  runtime = "node22"
+  deploy  = true
+  code    = file("${path.module}/actions/assertGroups.js")
+
+  supported_triggers {
+    id      = "post-login"
+    version = "v3"
+  }
+
+  dependencies {
+    name    = "auth0"
+    version = "4.9.0"
+  }
+
+  secrets {
+    name  = "mgmtClientId"
+    value = local.parsed_secrets["assertGroups_mgmtClientId"]
+  }
+
+  secrets {
+    name  = "mgmtClientSecret"
+    value = local.parsed_secrets["assertGroups_mgmtClientSecret"]
   }
 }
