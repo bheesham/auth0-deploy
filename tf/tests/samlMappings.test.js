@@ -187,20 +187,15 @@ describe("Sage Intacct SAML tests", () => {
 
 describe("Braintree SAML tests", () => {
   const clientIDs = ["x7TF6ZtJev4ktoHR4ObWmA9KeqGni6rq"];
-
   test.each(clientIDs)(
     "Ensure SAML configuration mappings for client %s",
     async (clientID) => {
       _event.client.client_id = clientID;
-
       expectedSamlAttributes = {
         grant_all_merchant_accounts: "true",
-        roles: _event.user.app_metadata?.groups,
       };
-
       // Execute onExecutePostLogin
       await onExecutePostLogin(_event, api);
-
       expect(api.samlResponse.setAttribute).toHaveBeenCalled();
       expect(_samlAttributes).toEqual(expectedSamlAttributes);
     }
@@ -531,7 +526,6 @@ describe("Braintree SAML tests", () => {
 
       const expectedSamlAttributes = {
         grant_all_merchant_accounts: "true",
-        roles: _event.user.app_metadata.groups,
       };
 
       // Execute onExecutePostLogin

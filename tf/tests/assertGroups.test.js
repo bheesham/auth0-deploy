@@ -125,3 +125,21 @@ describe("Test group merges", () => {
     );
   });
 });
+
+describe("Braintree SAML tests", () => {
+  const clientIDs = ["x7TF6ZtJev4ktoHR4ObWmA9KeqGni6rq"];
+  test.each(clientIDs)(
+    "Ensure SAML configuration mappings for client %s",
+    async (clientID) => {
+      _event.client.client_id = clientID;
+      _event.transaction.protocol = "samlp";
+      expectedSamlAttributes = {
+        roles: ["everyone"],
+      };
+      // Execute onExecutePostLogin
+      await onExecutePostLogin(_event, api);
+      expect(api.samlResponse.setAttribute).toHaveBeenCalled();
+      expect(_samlAttributes).toEqual(expectedSamlAttributes);
+    }
+  );
+});

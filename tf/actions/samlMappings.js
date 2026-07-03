@@ -196,7 +196,6 @@ exports.onExecutePostLogin = async (event, api) => {
 
     case "x7TF6ZtJev4ktoHR4ObWmA9KeqGni6rq": // Braintree
       api.samlResponse.setAttribute("grant_all_merchant_accounts", "true");
-      api.samlResponse.setAttribute("roles", event.user.app_metadata.groups);
       break;
 
     case "3c7lAT2sPywWjvgVP5ngCQysHtnNqQFj": // EQS Integrity Line
