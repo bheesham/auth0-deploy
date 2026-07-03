@@ -262,23 +262,12 @@ exports.onExecutePostLogin = async (event, api) => {
       }
       break;
     case "qXfKerLoU8w8FN76OB9Yt7I6w2N8lD2Y": // Workato Identity
-      // And similarly to above (Workato Workspace), Workato expects custom
-      // attributes to be set. We do some extra work to strip our internal
-      // group prefix.
-      const identityGroupPrefix = "mozilliansorg_workato_user-";
-      const identityGroups = userGroups
-        .filter((g) => g.startsWith(identityGroupPrefix))
-        .map((g) => g.slice(identityGroupPrefix.length));
-      if (!identityGroups.includes("default")) {
-        identityGroups.push("default");
-      }
       const name =
         event.user.given_name ||
         event.user.name ||
         event.user.email ||
         "Unknown";
       api.samlResponse.setAttribute("workato_end_user_name", name);
-      api.samlResponse.setAttribute("workato_end_user_groups", identityGroups);
       break;
   }
 

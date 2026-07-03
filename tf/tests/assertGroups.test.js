@@ -163,3 +163,24 @@ describe("Workato Workspace", () => {
     }
   );
 });
+
+describe("Workato Identity", () => {
+  const clientIDs = ["qXfKerLoU8w8FN76OB9Yt7I6w2N8lD2Y"];
+  test.each(clientIDs)(
+    "Ensure SAML configuration mappings for client %s",
+    async (clientID) => {
+      _event.transaction.protocol = "samlp";
+      _event.user.app_metadata = {
+        groups: ["mozilliansorg_workato_user-end_user"],
+      };
+      _event.client.client_id = clientID;
+      const expectedSamlAttributes = {
+        workato_end_user_groups: ["end_user", "everyone"],
+      };
+      // Execute onExecutePostLogin
+      await onExecutePostLogin(_event, api);
+      expect(api.samlResponse.setAttribute).toHaveBeenCalled();
+      expect(_samlAttributes).toEqual(expectedSamlAttributes);
+    }
+  );
+});

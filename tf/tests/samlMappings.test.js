@@ -568,13 +568,9 @@ describe("Workato Identity", () => {
   test.each(clientIDs)(
     "Ensure SAML configuration mappings for client %s",
     async (clientID) => {
-      _event.user.app_metadata = {
-        groups: ["mozilliansorg_workato_user-end_user"],
-      };
       _event.client.client_id = clientID;
       const expectedSamlAttributes = {
         workato_end_user_name: "John",
-        workato_end_user_groups: ["end_user", "default"],
       };
       // Execute onExecutePostLogin
       await onExecutePostLogin(_event, api);
