@@ -1,3 +1,4 @@
+const auth0 = require("auth0");
 const _ = require("lodash");
 const idTokenObj = require("./modules/idToken.json");
 const eventObj = require("./modules/event.json");
@@ -126,24 +127,6 @@ describe("Test group merges", () => {
   });
 });
 
-describe("Braintree SAML tests", () => {
-  const clientIDs = ["x7TF6ZtJev4ktoHR4ObWmA9KeqGni6rq"];
-  test.each(clientIDs)(
-    "Ensure SAML configuration mappings for client %s",
-    async (clientID) => {
-      _event.client.client_id = clientID;
-      _event.transaction.protocol = "samlp";
-      expectedSamlAttributes = {
-        roles: ["everyone"],
-      };
-      // Execute onExecutePostLogin
-      await onExecutePostLogin(_event, api);
-      expect(api.samlResponse.setAttribute).toHaveBeenCalled();
-      expect(_samlAttributes).toEqual(expectedSamlAttributes);
-    }
-  );
-});
-
 describe("Workato Workspace", () => {
   const clientIDs = ["JmJAOmGbtZsojMpFQC5fcmqghWHbuKrf"];
   test.each(clientIDs)(
@@ -183,4 +166,36 @@ describe("Workato Identity", () => {
       expect(_samlAttributes).toEqual(expectedSamlAttributes);
     }
   );
+});
+
+describe("Default attributes", () => {
+  test("Braintree example", async () => {
+    auth0.ManagementClient = class {
+      clients = {
+        get: (clientId) => {
+          return {
+            data: {
+              addons: {
+                samlp: {
+                  mappings: {
+                    groups: "roles",
+                  },
+                },
+              },
+            },
+          };
+        },
+      };
+    };
+    _event.transaction.protocol = "samlp";
+    _event.user.app_metadata = {};
+    _event.client.client_id = "x7TF6ZtJev4ktoHR4ObWmA9KeqGni6rq";
+    const expectedSamlAttributes = {
+      roles: ["everyone"],
+    };
+    // Execute onExecutePostLogin
+    await onExecutePostLogin(_event, api);
+    expect(api.samlResponse.setAttribute).toHaveBeenCalled();
+    expect(_samlAttributes).toEqual(expectedSamlAttributes);
+  });
 });

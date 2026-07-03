@@ -35,15 +35,6 @@ const tines = (groups) => {
   };
 };
 
-const braintree = (groups) => {
-  return {
-    groups: [...groups],
-    saml: {
-      create: ["roles"],
-    },
-  };
-};
-
 const identity = (groups) => {
   return {
     groups,
@@ -104,8 +95,6 @@ const customize = (clientId) => {
     case "cPH0znP4n74JvPf9Efc1w6O8KQWwT634":
     case "cDof40r4Uvde1xGs8i30HYnekOkIglN6":
       return tines;
-    case "x7TF6ZtJev4ktoHR4ObWmA9KeqGni6rq":
-      return braintree;
     case "JmJAOmGbtZsojMpFQC5fcmqghWHbuKrf":
       return workatoWorkspace;
     case "qXfKerLoU8w8FN76OB9Yt7I6w2N8lD2Y":
