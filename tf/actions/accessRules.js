@@ -61,6 +61,33 @@ const assuranceMax = (left, right) => {
   return right;
 };
 
+const duoConfigForLevel = (level, secrets, email) => {
+  let providerOptions;
+  let allowRememberBrowser = false;
+  if (level === "HIGH") {
+    console.info("using Duo HIGH client");
+    providerOptions = {
+      host: secrets.duo_apihost_mozilla_high,
+      ikey: secrets.duo_ikey_mozilla_high,
+      skey: secrets.duo_skey_mozilla_high,
+      username: email,
+    };
+  } else {
+    console.info("using Duo regular client");
+    providerOptions = {
+      host: secrets.duo_apihost_mozilla_medium,
+      ikey: secrets.duo_ikey_mozilla_medium,
+      skey: secrets.duo_skey_mozilla_medium,
+      username: email,
+    };
+    allowRememberBrowser = true;
+  }
+  return {
+    providerOptions,
+    allowRememberBrowser,
+  };
+};
+
 exports.onExecutePostLogin = async (event, api) => {
   console.log("Running actions:", "accessRules");
 
@@ -160,13 +187,6 @@ exports.onExecutePostLogin = async (event, api) => {
     "moc-sso-monitoring@mozilla.com", // MOC see: https://bugzilla.mozilla.org/show_bug.cgi?id=1423903
     "shared-deng-playstore@mozilla.com", // See: https://mozilla-hub.atlassian.net/browse/IAM-1938
   ];
-
-  const duoConfig = {
-    host: event.secrets.duo_apihost_mozilla,
-    ikey: event.secrets.duo_ikey_mozilla,
-    skey: event.secrets.duo_skey_mozilla,
-    username: event.user.email,
-  };
 
   // Check if array A has any occurrence from array B
   const hasCommonElements = (A, B) => {
@@ -490,10 +510,12 @@ exports.onExecutePostLogin = async (event, api) => {
 
     if (decision.granted) {
       if (decision.enableDuo && !isRefreshTokenFlow) {
-        api.multifactor.enable("duo", {
-          providerOptions: duoConfig,
-          allowRememberBrowser: true,
-        });
+        const duoConfig = duoConfigForLevel(
+          decision.aal,
+          event.secrets,
+          event.user.email
+        );
+        api.multifactor.enable("duo", duoConfig);
       }
       // Set groups, AAI, and AAL claims in idToken
       api.idToken.setCustomClaim(`${namespace}/AAI`, decision.aai);
