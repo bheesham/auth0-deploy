@@ -1,6 +1,7 @@
 [tools]
 node = "22"
 pnpm = "11.5.2"
+terraform = "1.9.8"
 
 [settings]
 npm.package_manager = "pnpm"
