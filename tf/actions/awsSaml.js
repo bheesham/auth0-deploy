@@ -22,6 +22,7 @@ exports.onExecutePostLogin = async (event, api) => {
       paramObj.awsGroups = [
         "fuzzing_team",
         "mozilliansorg_0din-devs",
+        "mozilliansorg_0din-guardrail-testing",
         "mozilliansorg_aws_billing_access",
         "mozilliansorg_cia-aws",
         "mozilliansorg_consolidated-billing-aws",
