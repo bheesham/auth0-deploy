@@ -32,7 +32,7 @@ exports.onExecutePostLogin = async (event, api) => {
     // Dev applications
     "9MR2UMAftbs6758Rmbs8yZ9Dj5AjeT0P": [
       "mozilliansorg_ghe_ghe-auth-dev_users",
-      "team_moco",
+      "gh_access_mozilla",
     ],
 
     // Prod applications
@@ -41,7 +41,7 @@ exports.onExecutePostLogin = async (event, api) => {
     ],
     EnEylt4OZW6i7yCWzZmCxyCxDRp6lOY0: [
       "mozilliansorg_ghe_saml-test-integrations_users",
-      "team_moco",
+      "gh_access_mozilla",
     ],
     "2MVzcGFtl2rbdEx97rpC98urD6ZMqUcf": ["mozilliansorg_ghe_mozilla-it_users"],
     Cc2xFG6xS5O8UKoSzoJ4eNggo6jHnzDU: ["mozilliansorg_ghe_mozilla-games_users"],
@@ -60,7 +60,10 @@ exports.onExecutePostLogin = async (event, api) => {
     lhAIAsdx3jSOiKe1LoHmB0zEsUrCbfhI: [
       "mozilliansorg_ghe_moco-ghe-admin_users",
     ],
-    f1MpcTzYA8J06nUUdO5LuhhA7b4JZVJi: ["mozilliansorg_ghe_mozilla_users"],
+    f1MpcTzYA8J06nUUdO5LuhhA7b4JZVJi: [
+      "mozilliansorg_ghe_mozilla_users",
+      "gh_access_mozilla",
+    ],
     s0v1r2d34lTqPtQu0jBVOKbWOKK4i1TU: ["mozilliansorg_ghe_mozmeao_users"],
     "5GfQ2AMXMqibOsatSYTKh3dVSioVPhGA": ["mozilliansorg_ghe_mozrelops_users"],
     k2dBGcFJAhzlqOuSZH5nQhyq6L87jVaT: [
