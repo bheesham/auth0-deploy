@@ -116,7 +116,6 @@ exports.onExecutePostLogin = async (event, api) => {
     "3iAAhN0vAavOHIzCqnaFKo9Mlqb9pBLH": [
       "mozilliansorg_ghe_mozillasecurity_users",
     ],
-    Qb2ZWerstBXCn5yCXQYU7vUfLuaZ1dMB: ["mozilliansorg_ghe_nss-dev_users"],
     A5hvTaSHqMyrCVMypE3TNhW4VXQzM63d: ["mozilliansorg_ghe_nubisproject_users"],
     VStrUcaxLXH9xQEEFX9Vkf0D5pRo5c6C: ["mozilliansorg_ghe_projectfluent_users"],
     WKOfTFaGTV10YKzfkMOyAl3bgi3BPFMc: ["mozilliansorg_ghe_taskcluster_users"],
