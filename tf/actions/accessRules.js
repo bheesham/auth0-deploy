@@ -41,6 +41,21 @@ const AAI_AS_INT = Object.fromEntries(
 // in access file.
 const AAL_DEFAULT = "MEDIUM";
 
+// The minimum AAL folks coming from LDAP _may_ have.
+//
+// LDAP related logic:
+//
+// * if they're comming from LDAP, then we enable Duo;
+// * if they have Duo in their profile, then we set what kinds of factors Duo
+//   supports. (And because that means either 2FA or Hardware, the minimum is
+//   2FA).
+//
+// Before IAM-1989, you can see this in play:
+//
+// * https://sso.mozilla.com/info says `https://sso.mozilla.com/claim/AAL` is set to MEDIUM;
+// * the SSO dashboard is defined with LOW AAL: https://github.com/mozilla-iam/sso-dashboard-configuration/blob/9f8672f1711716cf4ebfaf231abe8b6062467e9a/apps.yml#L1112-L1122
+const AAL_AD_MIN = "MEDIUM";
+
 // Given two assurance levels (e.g. `HIGH` and `LOW`), return the higher of the
 // two.
 const assuranceMax = (left, right) => {
@@ -427,6 +442,12 @@ exports.onExecutePostLogin = async (event, api) => {
     ) {
       aai.add("2FA");
       aai.add("HARDWARE");
+      // If Duo was configured, then set the minimum assurance level we're
+      // providing to MEDIUM (2FA).
+      if (aal !== assuranceMax(aal, AAL_AD_MIN)) {
+        console.log(`level from RP: ${aal}, minimum level: ${AAL_AD_MIN}`);
+        aal = assuranceMax(aal, AAL_AD_MIN);
+      }
     } else if (event.connection.name === "google-oauth2") {
       // We set Google to HIGH_ASSURANCE_IDP which is a special indicator, this is what it represents:
       // - has fraud detection
