@@ -86,7 +86,7 @@ test("Connection is not LDAP, do not call api.multifactor.enable", async () => {
   expect(api.multifactor.enable).not.toHaveBeenCalled();
 });
 
-test("user in LDAP (ad) requires 2FA", async () => {
+test("user in LDAP (ad) requires 2FA, without duo", async () => {
   _event.client.client_id = "client00000000000000000000000005";
   _event.connection = {
     id: "con_qVLhpUZQxluxX5kN",
@@ -94,6 +94,23 @@ test("user in LDAP (ad) requires 2FA", async () => {
     name: "Mozilla-LDAP-Dev",
     strategy: "ad",
   };
+
+  // Execute onExecutePostLogin
+  await onExecutePostLogin(_event, api);
+
+  // Expect api.multifactor.enable to have been called
+  expect(api.multifactor.enable).toHaveBeenCalled();
+});
+
+test("user in LDAP (ad) requires 2FA, with duo", async () => {
+  _event.client.client_id = "client00000000000000000000000005";
+  _event.connection = {
+    id: "con_qVLhpUZQxluxX5kN",
+    metadata: {},
+    name: "Mozilla-LDAP-Dev",
+    strategy: "ad",
+  };
+  _event.user.multifactor = ["duo"];
 
   // Execute onExecutePostLogin
   await onExecutePostLogin(_event, api);
