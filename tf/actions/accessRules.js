@@ -3,16 +3,20 @@ const YAML = require("js-yaml");
 const jwt = require("jsonwebtoken");
 const AWS = require("aws-sdk");
 
-// Assurance levels to accepted assurance indicators map.
-// The ordering of keys matters here.
+// [Risk levels] to accepted authentication assurance indicators map. The
+// ordering of keys matters here.
 //
-// The entries themselves don't super matter too much, and they're going to be
-// connection-dependent. Example: for Google we seem to use
-// `HIGH_ASSURANCE_IDP`, but it's not really clear what that actually provides.
+// Bhee thinks that in theory these should have mapped to Authentication Method
+// References (AMR) defined by [IANA]. But, we can't really depend on other IdPs
+// to provide that value for us (*cough* Google *cough*). And so, the entries
+// themselves are Mozilla's flavour of AMR.
 //
-// The main thing here is that, for things we _know_ about (2FA, HARDWARE),
-// we're able to guarantee some properties of an authenticator, because for
-// Mozillians, hooked up to Duo.
+// The main thing here is that, for things we control (2FA, POP), we're able to
+// guarantee some properties of an authenticator for Mozillians hooked up to
+// Duo.
+//
+// [Risk levels]: https://infosec.mozilla.org/guidelines/risk/standard_levels
+// [IANA]: www.iana.org/assignments/authentication-method-reference-values
 const AAI_MAPPING = {
   // No authenticator required.
   LOW: new Set(),
