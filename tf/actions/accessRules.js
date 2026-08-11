@@ -23,12 +23,15 @@ const AAI_MAPPING = {
   // Second factor required. Examples:
   // * Google Authenticator (TOTP)
   // * RP's authenticator settings (Google)
-  MEDIUM: new Set(["2FA", "HARDWARE", "HIGH_ASSURANCE_IDP"]),
-  // Hardware-protected authenticator required. Examples:
-  // * Platform authenticator (e.g. Windows Hello, Apple ID, Passkey)
-  // * Roaming authenticator (e.g. synced Passkey)
-  // * Hardware tokens (e.g. Yubikey)
-  HIGH: new Set(["HARDWARE"]),
+  //
+  // Explanation of values:
+  //
+  // * 2FA: (any) 2nd factor -- e.g. totp, hotp, hwk, swk, WebAuthn, passkey;
+  // * POP: proof of posession of key -- e.g. hwk, swk, passkey, WebAuthn;
+  // * HIGH_ASSURANCE_IDP: something we made up to indicate Google said "yeah,
+  //   they MFA'd".
+  MEDIUM: new Set(["2FA", "POP", "HIGH_ASSURANCE_IDP"]),
+  HIGH: new Set(["HIGH_NOT_IMPLEMENTED"]),
   MAXIMUM: new Set(["MAXIMUM_NOT_IMPLEMENTED"]),
 };
 
@@ -92,7 +95,7 @@ const assuranceMax = (left, right) => {
 const duoConfigForLevel = (level, secrets, email) => {
   let providerOptions;
   let allowRememberBrowser = false;
-  if (level === "HIGH") {
+  if (level === "POP") {
     console.info("using Duo HIGH client");
     providerOptions = {
       host: secrets.duo_apihost_mozilla_high,
@@ -318,6 +321,10 @@ exports.onExecutePostLogin = async (event, api) => {
     // The AAL from the matched authorization rule is used.
     let aal;
 
+    // The matched application is also able to restrict which indicators (factors) are
+    // used.
+    let aai_required;
+
     // Only look at rules which match our client_id.
     const apps = access_rules
       .filter(
@@ -375,6 +382,7 @@ exports.onExecutePostLogin = async (event, api) => {
       ) {
         console.log(`${event.user.user_id} was in authorized_users`);
         aal = assuranceMax(aal, app.AAL || AAL_DEFAULT);
+        aai_required = app.AAI;
         // Same dance as above, but for groups
       } else if (
         app.authorized_groups.length > 0 &&
@@ -382,6 +390,7 @@ exports.onExecutePostLogin = async (event, api) => {
       ) {
         console.log(`${event.user.user_id} was in authorized_groups`);
         aal = assuranceMax(aal, app.AAL || AAL_DEFAULT);
+        aai_required = app.AAI;
       }
     } // for loop / next rule in apps.yml
 
@@ -450,13 +459,15 @@ exports.onExecutePostLogin = async (event, api) => {
       }
       // LDAP/DuoSecurity
     } else if (
-      event.user.multifactor !== undefined &&
-      event.user.multifactor[0] === "duo"
+        event.user.multifactor !== undefined &&
+        event.user.multifactor[0] === "duo"
     ) {
-      aai.add("2FA");
-      aai.add("HARDWARE");
-      // If Duo was configured, then set the minimum assurance level we're
-      // providing to MEDIUM (2FA).
+      // If an app specified a specific indicator then use that. In theory this
+      // should have more items (since the user also provided a password,
+      // etc, etc), but here we are.
+      aai.add(aai_required || "2FA");
+      // If Duo was configured, then set the minimum risk level we're
+      // allowing to MEDIUM (2FA).
       if (aal !== assuranceMax(aal, AAL_AD_MIN)) {
         console.log(`level from RP: ${aal}, minimum level: ${AAL_AD_MIN}`);
         aal = assuranceMax(aal, AAL_AD_MIN);
@@ -472,6 +483,8 @@ exports.onExecutePostLogin = async (event, api) => {
       // indicator of what the authenticator supports at this time for Google accounts
       aai.add("HIGH_ASSURANCE_IDP");
     }
+
+    console.log(aai);
 
     // AAI (AUTHENTICATOR ASSURANCE INDICATOR) REQUIREMENTS
     //
@@ -545,7 +558,7 @@ exports.onExecutePostLogin = async (event, api) => {
     if (decision.granted) {
       if (decision.enableDuo && !isRefreshTokenFlow) {
         const duoConfig = duoConfigForLevel(
-          decision.aal,
+          decision.aai[0],
           event.secrets,
           event.user.email
         );
