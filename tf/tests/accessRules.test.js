@@ -548,7 +548,7 @@ describe("Client is defined in apps.yml as client00000000000000000000000007", ()
       "aai_failed"
     );
   });
-  test("User has no groups, aai 2FA and HARDWARE; expect allowed", async () => {
+  test("User has no groups, aai 2FA; expect denied", async () => {
     _event.client.client_id = "client00000000000000000000000007";
     _event.user.multifactor = ["duo"];
     _event.user.groups = [];
@@ -557,7 +557,10 @@ describe("Client is defined in apps.yml as client00000000000000000000000007", ()
 
     await onExecutePostLogin(_event, api);
 
-    expect(_event.transaction.redirect_uri).toEqual(undefined);
+    expect(_event.transaction.redirect_uri).toBeDefined();
+    expect(decodeRedirect(_event.transaction.redirect_uri)).toEqual(
+      "aai_failed"
+    );
   });
   test("User has no groups, aai HIGH_ASSURANCE_IDP; expect denied", async () => {
     _event.client.client_id = "client00000000000000000000000007";
