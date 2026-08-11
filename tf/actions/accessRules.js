@@ -69,8 +69,8 @@ const AAL_DEFAULT = "MEDIUM";
 // * the SSO dashboard is defined with LOW AAL: https://github.com/mozilla-iam/sso-dashboard-configuration/blob/9f8672f1711716cf4ebfaf231abe8b6062467e9a/apps.yml#L1112-L1122
 const AAL_AD_MIN = "MEDIUM";
 
-// Given two assurance levels (e.g. `HIGH` and `LOW`), return the higher of the
-// two.
+// Given two risk (AAL) levels (e.g. `HIGH` and `LOW`), return the riskier
+// (higher) of the two.
 const assuranceMax = (left, right) => {
   const leftNum = AAI_AS_INT[left];
   const rightNum = AAI_AS_INT[right];
