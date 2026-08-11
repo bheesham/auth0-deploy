@@ -41,20 +41,29 @@ const AAI_AS_INT = Object.fromEntries(
   ])
 );
 
-// Default app requested aal to MEDIUM for all apps which do not have this set
-// in access file.
+// The way we use Authenticator Assurance Levels (AAL) is a bit of a misnomer,
+// as we use it as a mapping to risk levels (see above).
+//
+// The _least_ AAL we provide (as of 2026, and likely for the distant future
+// because of FIPS stuff) is AAL2 (pop/otp + pwd).
+//
+// This sets the default risk level for applications, which require some form
+// of multifactor authentication.
+//
+// TODO: Consider renaming `AAL_*` to `RISK_*`? It's sort of a pain though,
+// because we use the name "AAL" everywhere.
 const AAL_DEFAULT = "MEDIUM";
 
-// The minimum AAL folks coming from LDAP _may_ have.
+// It's easier (for bhee) to think of this as "what level of risk do we trust
+// this user with?".
 //
-// LDAP related logic:
+// The minimum AAL folks coming from LDAP _may_ have. LDAP related logic:
 //
 // * if they're comming from LDAP, then we enable Duo;
 // * if they have Duo in their profile, then we set what kinds of factors Duo
-//   supports. (And because that means either 2FA or Hardware, the minimum is
-//   2FA).
+//   supports. (And because that means password _and_ 2FA the minimum is MEDIUM).
 //
-// Before IAM-1989, you can see this in play:
+// You can see this in play:
 //
 // * https://sso.mozilla.com/info says `https://sso.mozilla.com/claim/AAL` is set to MEDIUM;
 // * the SSO dashboard is defined with LOW AAL: https://github.com/mozilla-iam/sso-dashboard-configuration/blob/9f8672f1711716cf4ebfaf231abe8b6062467e9a/apps.yml#L1112-L1122
