@@ -459,8 +459,8 @@ exports.onExecutePostLogin = async (event, api) => {
       }
       // LDAP/DuoSecurity
     } else if (
-        event.user.multifactor !== undefined &&
-        event.user.multifactor[0] === "duo"
+      event.user.multifactor !== undefined &&
+      event.user.multifactor[0] === "duo"
     ) {
       // If an app specified a specific indicator then use that. In theory this
       // should have more items (since the user also provided a password,
