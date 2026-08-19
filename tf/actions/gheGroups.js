@@ -168,6 +168,9 @@ exports.onExecutePostLogin = async (event, api) => {
     PVxjlYImxnDIFaqZpiIYGu7ML1xI82Ew: [
       "mozilliansorg_ghe_fxos-components_users",
     ],
+    n99KHb8ymQS7nn9VyZ70JCxG5TwtbTVM: [
+      "mozilliansorg_ghe_mozilla-magnet_users",
+    ],
   };
 
   // ClientID isn't mapped here, return callback() and proceed rules processing
