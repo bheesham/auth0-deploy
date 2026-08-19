@@ -3,6 +3,41 @@ const YAML = require("js-yaml");
 const jwt = require("jsonwebtoken");
 const AWS = require("aws-sdk");
 
+// [Risk levels] to accepted authentication assurance indicators map. The
+// ordering of keys matters here.
+//
+// Bhee thinks that in theory these should have mapped to Authentication Method
+// References (AMR) defined by [IANA]. But, we can't really depend on other IdPs
+// to provide that value for us (*cough* Google *cough*). And so, the entries
+// themselves are Mozilla's flavour of AMR.
+//
+// The main thing here is that, for things we control (2FA, POP), we're able to
+// guarantee some properties of an authenticator for Mozillians hooked up to
+// Duo.
+//
+// [Risk levels]: https://infosec.mozilla.org/guidelines/risk/standard_levels
+// [IANA]: www.iana.org/assignments/authentication-method-reference-values
+const RISK_LEVELS = {
+  // No 2nd factor required.
+  LOW: [],
+  // Second factor required. Examples:
+  // * Google Authenticator (TOTP)
+  // * RP's authenticator settings (Google)
+  //
+  // Explanation of values:
+  //
+  // * 2FA: (any) 2nd factor -- e.g. totp, hotp, hwk, swk, WebAuthn, passkey;
+  // * HIGH_ASSURANCE_IDP: something we made up to indicate Google said "yeah,
+  //   they MFA'd".
+  MEDIUM: ["2FA", "HIGH_ASSURANCE_IDP"],
+  // We don't implement anything for HIGH nor MAXIMUM. We might at some point,
+  // because there are different [kinds of risks].
+  //
+  // [kinds of risks]: https://infosec.mozilla.org/guidelines/assessing_security_risk
+  HIGH: ["HIGH_NOT_IMPLEMENTED"],
+  MAXIMUM: ["MAXIMUM_NOT_IMPLEMENTED"],
+};
+
 exports.onExecutePostLogin = async (event, api) => {
   console.log("Running actions:", "accessRules");
 
@@ -208,7 +243,7 @@ exports.onExecutePostLogin = async (event, api) => {
   //
   // The one exception is that: if any apps say _no_ users nor groups should
   // have access, then we bail early.
-  const access_decision = (groups, access_rules, access_file_conf) => {
+  const access_decision = (groups, access_rules, risk_levels) => {
     // This is used for authorized user/groups
     let authorized = false;
 
@@ -376,28 +411,28 @@ exports.onExecutePostLogin = async (event, api) => {
     //
     // Mapping logic and verification
     // Ex: our mapping says 2FA for MEDIUM AAL and app AAL is MEDIUM as well, and the user has 2FA AAI, looks like:
-    // access_file_conf.aai_mapping['MEDIUM'] = ['2FA'];
+    // risk_levels['MEDIUM'] = ['2FA'];
     // app.AAL = 'MEDIUM;
     // user.aai = ['2FA'];
     // Thus user should be allowed for this app (it requires MEDIUM, and MEDIUM requires 2FA, and user has 2FA
     // indeed)
     //
     let aai_pass = false;
-    if (access_file_conf.aai_mapping !== undefined) {
+    if (risk_levels !== undefined) {
       // 1 Set user.aal
       // maps = [ "LOW", "MEDIUM", ...
       // aal_nr = position in the maps (aai_mapping[maps[aal_nr=0]] is "LOW" for.ex)
       // aai_nr = position in the array of AAIs (aai_mapping[maps[aal_nr=0]] returns ["2FA", .., aai_nr=0 would be the
       // position for "2FA")
       // Note that the list is ordered so that the highest AAL always wins
-      const maps = Object.keys(access_file_conf.aai_mapping);
+      const maps = Object.keys(risk_levels);
       for (let aal_nr = 0; aal_nr < maps.length; aal_nr++) {
         for (
           let aai_nr = 0;
-          aai_nr < access_file_conf.aai_mapping[maps[aal_nr]].length;
+          aai_nr < risk_levels[maps[aal_nr]].length;
           aai_nr++
         ) {
-          let cur_aai = access_file_conf.aai_mapping[maps[aal_nr]][aai_nr];
+          let cur_aai = risk_levels[maps[aal_nr]][aai_nr];
           if (aai.indexOf(cur_aai) >= 0) {
             aal = maps[aal_nr];
             console.log(`User AAL set to ${aal} because AAI contains ${aai}`);
@@ -406,7 +441,7 @@ exports.onExecutePostLogin = async (event, api) => {
         }
       }
       // 2 Check if user.aal is allowed for this RP
-      if (access_file_conf.aai_mapping[required_aal].length === 0) {
+      if (risk_levels[required_aal].length === 0) {
         console.log(
           "No required indicator in aai_mapping for this RP (mapping empty for this AAL), access will be granted"
         );
@@ -414,9 +449,7 @@ exports.onExecutePostLogin = async (event, api) => {
       } else {
         for (let y = 0; y < aai.length; y++) {
           let this_aai = aai[y];
-          if (
-            access_file_conf.aai_mapping[required_aal].indexOf(this_aai) >= 0
-          ) {
+          if (risk_levels[required_aal].indexOf(this_aai) >= 0) {
             console.log(
               "User AAL is included in this RP's AAL requirements, access will be granted"
             );
@@ -444,15 +477,6 @@ exports.onExecutePostLogin = async (event, api) => {
     };
   };
 
-  const access_file_conf = {
-    aai_mapping: {
-      LOW: [],
-      MEDIUM: ["2FA", "HIGH_ASSURANCE_IDP"],
-      HIGH: ["HIGH_NOT_IMPLEMENTED"],
-      MAXIMUM: ["MAXIMUM_NOT_IMPLEMENTED"],
-    },
-  };
-
   // This function pulls the apps.yml and returns a promise to yield the application list
   async function getAppsYaml(url) {
     try {
@@ -471,7 +495,7 @@ exports.onExecutePostLogin = async (event, api) => {
     const cdnUrl = "https://cdn.sso.mozilla.com/apps.yml";
     const appsYaml = await getAppsYaml(cdnUrl);
     const groups = groupsGather();
-    const decision = access_decision(groups, appsYaml, access_file_conf);
+    const decision = access_decision(groups, appsYaml, RISK_LEVELS);
     // Refresh token exchanges are non-interactive, and are minted when a user
     // has already completed the MFA challenge.
     const isRefreshTokenFlow =
