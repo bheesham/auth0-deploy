@@ -67,7 +67,7 @@ exports.onExecutePostLogin = async (event, api) => {
       if ("SecretString" in data) {
         return JSON.parse(data.SecretString);
       } else {
-        let buff = Buffer.from(data.SecretBinary, "base64");
+        const buff = Buffer.from(data.SecretBinary, "base64");
         return buff.toString("ascii");
       }
     } catch (err) {
@@ -154,7 +154,7 @@ exports.onExecutePostLogin = async (event, api) => {
   const getProfileData = (connection) => {
     var i = 0;
     for (i = 0; i < event.user.identities.length; i++) {
-      var cid = event.user.identities[i];
+      const cid = event.user.identities[i];
       if (cid.connection === connection) {
         return cid.profileData;
       }
@@ -169,7 +169,7 @@ exports.onExecutePostLogin = async (event, api) => {
     // https:// then do not overload with custom claims
     const scopes_requested = event.transaction.requested_scopes || [];
 
-    let fixup_needed = (scope) => {
+    const fixup_needed = (scope) => {
       return scope === "profile" || scope.startsWith("https://");
     };
 
@@ -198,7 +198,7 @@ exports.onExecutePostLogin = async (event, api) => {
     // With account linking its possible that LDAP is not the main account on contributor LDAP accounts
     // Here we iterate over all possible user identities and build an array of all groups from them
     let _identity;
-    let identityGroups = [];
+    const identityGroups = [];
     // Iterate over each identity
     for (let x = 0, len = event.user.identities.length; x < len; x++) {
       // Get profile for the given identity
@@ -265,7 +265,7 @@ exports.onExecutePostLogin = async (event, api) => {
 
     // Default deny for apps we don't define in
     // https://github.com/mozilla-iam/sso-dashboard-configuration/blob/master/apps.yml
-    if (apps.length == 0) {
+    if (apps.length === 0) {
       console.log(`No access rules defined for ${event.client.client_id}`);
       return deny("notingroup");
     }
