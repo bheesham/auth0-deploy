@@ -397,3 +397,22 @@ resource "auth0_action" "configurationDumper" {
     version = "v3"
   }
 }
+
+resource "auth0_action" "dinoparkAPIShim" {
+  name    = "dinoparkAPIShim"
+  runtime = "node22"
+  deploy  = true
+  code    = file("${path.module}/actions/dinoparkAPIShim.js")
+  supported_triggers {
+    id      = "credentials-exchange"
+    version = "v2"
+  }
+}
+
+resource "auth0_trigger_actions" "credentials_exchange" {
+  trigger = "credentials-exchange"
+  actions {
+    id           = auth0_action.dinoparkAPIShim.id
+    display_name = "DinoPark API Shim"
+  }
+}
