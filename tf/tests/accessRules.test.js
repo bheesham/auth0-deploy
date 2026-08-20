@@ -51,10 +51,6 @@ beforeEach(() => {
     _event.user.app_metadata[key] = value;
   });
 
-  // Spy on console
-  consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-  consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
-  consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
   fetchSpy = jest.spyOn(global, "fetch").mockResolvedValue({
     text: jest.fn().mockResolvedValue(appsYaml),
   });
@@ -63,9 +59,6 @@ beforeEach(() => {
 afterEach(() => {
   // Clean up after each test
   jest.clearAllMocks();
-  consoleLogSpy.mockRestore();
-  consoleWarnSpy.mockRestore();
-  consoleErrorSpy.mockRestore();
   fetchSpy.mockRestore();
 });
 
