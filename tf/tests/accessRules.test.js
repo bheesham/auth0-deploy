@@ -43,7 +43,7 @@ beforeEach(() => {
 
   // Mock sendUserTo
   api.redirect.sendUserTo.mockImplementation((uri) => {
-    _event.transaction["redirect_uri"] = uri;
+    _event.transaction.redirect_uri = uri;
   });
 
   // Mock setAppMetadata
@@ -115,13 +115,13 @@ test("Using a refresh token should not trigger MFA challenge", async () => {
 });
 
 test("service account MFA bypass", async () => {
-  (_event.connection = {
+  _event.connection = {
     id: "con_qVLhpUZQxluxX5kN",
     metadata: {},
     name: "Mozilla-LDAP-Dev",
     strategy: "ad",
-  }),
-    (_event.user.email = "moc-sso-monitoring@mozilla.com");
+  };
+  _event.user.email = "moc-sso-monitoring@mozilla.com";
 
   // Execute onExecutePostLogin
   await onExecutePostLogin(_event, api);
@@ -132,14 +132,14 @@ test("service account MFA bypass", async () => {
 
 test("email account not verified", async () => {
   _event.user.email_verified = false;
-  (_event.connection = {
+  _event.connection = {
     id: "con_qVLhpUZQxluxX5kN",
     metadata: {},
     name: "Mozilla-LDAP-Dev",
     strategy: "ad",
-  }),
-    // Execute onExecutePostLogin
-    await onExecutePostLogin(_event, api);
+  };
+  // Execute onExecutePostLogin
+  await onExecutePostLogin(_event, api);
 
   expect(_event.transaction.redirect_uri).toBeDefined();
   expect(decodeRedirect(_event.transaction.redirect_uri)).toEqual(
