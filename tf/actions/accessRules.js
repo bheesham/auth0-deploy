@@ -3,35 +3,70 @@ const YAML = require("js-yaml");
 const jwt = require("jsonwebtoken");
 const AWS = require("aws-sdk");
 
+// Sorted by "strength". Inspired by [IANA's Authentication Method Reference]
+// (AMR).
+//
+// * HIGH_ASSURANCE_IDP: a signal from Google that the user used some kind of
+//   MFA;
+// * 2FA: any kind of second factor;
+// * HWK: a factor that requires a proof-of-posession of a key (roaming
+//   authenticators (Yubikey), platform authenticators (Apple TouchId)).
+//
+// [IANA's Authentication Method Reference]: https://www.iana.org/assignments/authentication-method-reference-values
+const INDICATORS = ["HIGH_ASSURANCE_IDP", "2FA", "HWK"];
+
+// Apps may specify additional restrictions for the kinds of indicator. If an
+// app doesn't specify a requirement, we'll stick to a default.
+//
+// Right now, this only applies to LDAP+Duo, because that's the only
+// combination we care about. If we wanted to do this for other providers, we'd
+// _maybe_ have two approaches:
+//
+// [Patch the connection], but then we're affecting all users using that connection.
+// [Step-up authentication], but then we have to use a MFA integration within Auth0 (e.g. Duo),
+// meaning the user would have to register with Duo and have 2 MFA providers.
+//
+// See also:
+//
+// * https://openid.net/specs/openid-provider-authentication-policy-extension-1_0.html#auth_policies
+//
+// [Step-up authentication]: https://auth0.com/docs/secure/multi-factor-authentication/step-up-authentication/configure-step-up-authentication-for-web-apps
+// [Patch the connection]: https://auth0.com/docs/authenticate/identity-providers/pass-parameters-to-idps
+const INDICATOR_DEFAULT = "2FA";
+
+// Some apps _may_ put additional restrictions on the kinds of indicator users
+// may use, hence the special treatment of `undefined`.
+const maxIndicator = (left, right) => {
+  if (left === undefined && right !== undefined) {
+    return right;
+  } else if (right === undefined && left !== undefined) {
+    return left;
+  }
+  return INDICATORS.indexOf(left) > INDICATORS.indexOf(right) ? left : right;
+};
+
 // [Risk levels] to accepted authentication assurance indicators map. The
 // ordering of keys matters here.
 //
-// Bhee thinks that in theory these should have mapped to Authentication Method
-// References (AMR) defined by [IANA]. But, we can't really depend on other IdPs
-// to provide that value for us (*cough* Google *cough*). And so, the entries
-// themselves are Mozilla's flavour of AMR.
+// Bhee thinks that in theory these should have mapped to AMR defined by IANA.
+// But, we can't really depend on other IdPs to provide that value for us
+// (*cough* Google *cough*). And so, the entries themselves are Mozilla's
+// flavour of AMR.
 //
 // The main thing here is that, for things we control (2FA, POP), we're able to
 // guarantee some properties of an authenticator for Mozillians hooked up to
 // Duo.
 //
 // [Risk levels]: https://infosec.mozilla.org/guidelines/risk/standard_levels
-// [IANA]: www.iana.org/assignments/authentication-method-reference-values
 const RISK_LEVELS = {
   // No 2nd factor required.
   LOW: [],
-  // Second factor required. Examples:
-  // * Google Authenticator (TOTP)
-  // * RP's authenticator settings (Google)
-  //
-  // Explanation of values:
-  //
-  // * 2FA: (any) 2nd factor -- e.g. totp, hotp, hwk, swk, WebAuthn, passkey;
-  // * HIGH_ASSURANCE_IDP: something we made up to indicate Google said "yeah,
-  //   they MFA'd".
-  MEDIUM: ["2FA", "HIGH_ASSURANCE_IDP"],
+  // Second factor required.
+  MEDIUM: ["HIGH_ASSURANCE_IDP", "2FA", "HWK"],
   // We don't implement anything for HIGH nor MAXIMUM. We might at some point,
-  // because there are different [kinds of risks].
+  // because there are different [kinds of risks]. If we wanted to implement
+  // one of these, we'd need to chat with Security to know which methods to
+  // use.
   //
   // [kinds of risks]: https://infosec.mozilla.org/guidelines/assessing_security_risk
   HIGH: ["HIGH_NOT_IMPLEMENTED"],
@@ -255,6 +290,9 @@ exports.onExecutePostLogin = async (event, api) => {
     // be trusted with at least this risk level.
     let risk;
 
+    // An app _may_ put restrictions on the kind of indicator used.
+    let indicator_required;
+
     // Only look at rules which match our client_id.
     const apps = access_rules
       .filter(
@@ -310,8 +348,8 @@ exports.onExecutePostLogin = async (event, api) => {
       ) {
         console.log(`${event.user.user_id} was in authorized_users`);
         risk = app.AAL || risk_default;
+        indicator_required = maxIndicator(indicator_required, app.AAI);
         authorized = true;
-        break;
         // Same dance as above, but for groups
       } else if (
         app.authorized_groups.length > 0 &&
@@ -319,10 +357,12 @@ exports.onExecutePostLogin = async (event, api) => {
       ) {
         console.log(`${event.user.user_id} was in authorized_groups`);
         risk = app.AAL || risk_default;
+        indicator_required = maxIndicator(indicator_required, app.AAI);
         authorized = true;
-        break;
       }
     } // for loop / next rule in apps.yml
+
+    console.log(`required indicator: ${indicator_required}`);
 
     if (!authorized) {
       console.log(
@@ -392,7 +432,7 @@ exports.onExecutePostLogin = async (event, api) => {
       event.user.multifactor !== undefined &&
       event.user.multifactor[0] === "duo"
     ) {
-      aai.push("2FA");
+      aai.push(indicator_required || INDICATOR_DEFAULT);
     } else if (event.connection.name === "google-oauth2") {
       // We set Google to HIGH_ASSURANCE_IDP which is a special indicator, this is what it represents:
       // - has fraud detection

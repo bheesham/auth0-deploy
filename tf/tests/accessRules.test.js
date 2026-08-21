@@ -656,3 +656,24 @@ describe("Client is defined multiple times in apps.yml as client0000000000000000
     );
   });
 });
+
+describe("Client is defined multiple times in apps.yml as client00000000000000000000000010", () => {
+  test("User in team_moco; expect allowed", async () => {
+    // This entry in apps.yml does not require MFA.
+    _event.client.client_id = "client00000000000000000000000010";
+    _event.connection.strategy = "ad";
+    _event.user.multifactor = ["duo"];
+    _event.user.groups = ["team_moco"];
+    await onExecutePostLogin(_event, api);
+    expect(api.multifactor.enable).toHaveBeenCalled();
+  });
+  test("User in restricted_group_1; expect allowed", async () => {
+    _event.client.client_id = "client00000000000000000000000010";
+    _event.connection.strategy = "ad";
+    _event.user.multifactor = ["duo"];
+    _event.user.groups = ["team_moco", "restricted_group_1"];
+    await onExecutePostLogin(_event, api);
+    expect(api.multifactor.enable).toHaveBeenCalled();
+    expect(_event.transaction.redirect_uri).toEqual(undefined);
+  });
+});
