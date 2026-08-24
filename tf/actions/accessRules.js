@@ -377,7 +377,7 @@ const onExecutePostLogin = async (event, api) => {
     // differently in the main profile depending on the connection type.
 
     // Ensure all users have some AAI and AAL attributes, even if its empty.
-    const aai = [];
+    let indicator;
     let trust = "UNKNOWN";
     let enableDuo = false;
 
@@ -387,7 +387,7 @@ const onExecutePostLogin = async (event, api) => {
         console.log(
           `LDAP service account (${event.user.email}) is allowed to bypass MFA`
         );
-        aai.push("2FA");
+        indicator = "2FA";
       } else {
         enableDuo = true;
         console.log(
@@ -404,12 +404,12 @@ const onExecutePostLogin = async (event, api) => {
         event.user.two_factor_authentication !== undefined &&
         event.user.two_factor_authentication === true
       ) {
-        aai.push("2FA");
+        indicator = "2FA";
       } else if (
         profileData !== undefined &&
         profileData.two_factor_authentication === true
       ) {
-        aai.push("2FA");
+        indicator = "2FA";
       }
       // Firefox Accounts
     } else if (event.connection.name === "firefoxaccounts") {
@@ -417,19 +417,19 @@ const onExecutePostLogin = async (event, api) => {
         event.user.fxa_twoFactorAuthentication !== undefined &&
         event.user.fxa_twoFactorAuthentication === true
       ) {
-        aai.push("2FA");
+        indicator = "2FA";
       } else if (
         profileData !== undefined &&
         profileData.fxa_twoFactorAuthentication === true
       ) {
-        aai.push("2FA");
+        indicator = "2FA";
       }
       // LDAP/DuoSecurity
     } else if (
       event.user.multifactor !== undefined &&
       event.user.multifactor[0] === "duo"
     ) {
-      aai.push(indicator_required);
+      indicator = indicator_required;
     } else if (event.connection.name === "google-oauth2") {
       // We set Google to HIGH_ASSURANCE_IDP which is a special indicator, this is what it represents:
       // - has fraud detection
@@ -439,7 +439,7 @@ const onExecutePostLogin = async (event, api) => {
       // - will fallback to phone 2FA on all recent accounts
       // Note that this is not the same as "2FA" and other indicators, as we simply do not have a technically accurate
       // indicator of what the authenticator supports at this time for Google accounts
-      aai.push("HIGH_ASSURANCE_IDP");
+      indicator = "HIGH_ASSURANCE_IDP";
     }
 
     // AUTHENTICATOR ASSURANCE INDICATOR (AAI) REQUIREMENTS
@@ -457,38 +457,38 @@ const onExecutePostLogin = async (event, api) => {
     // Thus user should be allowed for this app (it requires MEDIUM, and MEDIUM
     // requires 2FA, and user has 2FA indeed).
     let aai_pass = false;
-    // 1 Set user.aal
-    // maps = [ "LOW", "MEDIUM", ...
-    // aal_nr = position in the maps (aai_mapping[maps[aal_nr=0]] is "LOW" for.ex)
-    // aai_nr = position in the array of AAIs (aai_mapping[maps[aal_nr=0]] returns ["2FA", .., aai_nr=0 would be the
-    // position for "2FA")
-    // Note that the list is ordered so that the highest AAL always wins
-    for (const risk_level_name of Object.keys(risk_levels)) {
-      for (const factor of risk_levels[risk_level_name]) {
-        if (aai.includes(factor)) {
-          trust = risk_level_name;
-          console.log(`User AAL set to ${trust} because AAI contains ${aai}`);
-          break;
-        }
-      }
+
+    // Sanity check: does this risk level exist?
+    if (!Object.keys(risk_levels).includes(risk)) {
+      throw new Error(`Unrecognized risk level ${risk}`);
     }
-    // 2 Check if user.aal is allowed for this RP
+
+    // Some risk levels (i.e. LOW) don't require any factors.
     if (risk_levels[risk].length === 0) {
       console.log(
         "No required indicator in aai_mapping for this RP (mapping empty for this AAL), access will be granted"
       );
       aai_pass = true;
-    } else {
-      for (const indicator of aai) {
-        if (risk_levels[risk].includes(indicator)) {
-          console.log(
-            "User AAL is included in this RP's AAL requirements, access will be granted"
-          );
+    }
+
+    // We do two things:
+    //
+    // * check the user has an acceptable indicator, as required by the RISK level;
+    // * set the user's trust to the highest matching risk.
+    for (const risk_level_name of Object.keys(risk_levels)) {
+      if (risk_levels[risk_level_name].includes(indicator)) {
+        // If the user supplied has an indicator which was required by this risk level,
+        // then the AAI check passes.
+        if (risk_level_name === risk) {
           aai_pass = true;
-          break;
         }
+        // We'll also trust them with that level of risk. Because we don't
+        // break early, we'll assign them the highest trust we can.
+        trust = risk_level_name;
       }
     }
+
+    console.log(`User AAL set to ${trust} because AAI contains ${indicator}`);
 
     if (!aai_pass) {
       const msg =
@@ -502,7 +502,7 @@ const onExecutePostLogin = async (event, api) => {
     return {
       granted: true,
       enableDuo,
-      aai,
+      indicator,
       trust,
     };
   };
@@ -539,7 +539,7 @@ const onExecutePostLogin = async (event, api) => {
         });
       }
       // Set groups, AAI, and AAL claims in idToken
-      api.idToken.setCustomClaim(`${namespace}/AAI`, decision.aai);
+      api.idToken.setCustomClaim(`${namespace}/AAI`, [decision.indicator]);
       api.idToken.setCustomClaim(`${namespace}/AAL`, decision.trust);
       groupsSetCustomClaims(groups);
       return;
