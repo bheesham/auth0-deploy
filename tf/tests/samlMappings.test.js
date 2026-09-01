@@ -8,16 +8,6 @@ const { onExecutePostLogin } = require("../actions/samlMappings.js");
 // Mock auth0 module
 jest.mock("auth0");
 
-// Take all log enteries and combine them into a single array
-const combineLog = (consoleLogs) => {
-  let combinedLog = [];
-  for (let i = 0; i < consoleLogs.length; i++) {
-    singleStr = consoleLogs[i].join(" ");
-    combinedLog.push(singleStr);
-  }
-  return combinedLog;
-};
-
 // Function to extract matching key-value pairs
 const extractMatchingPairs = (objToSearch, objToFind) => {
   const result = {};
@@ -83,19 +73,11 @@ beforeEach(() => {
   api.samlResponse.setEncryptionCert.mockImplementation((value) => {
     _samlAttributes["EncryptionCert"] = value;
   });
-
-  // Spy on console
-  consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-  consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
-  consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 });
 
 afterEach(() => {
   // Clean up after each test
   jest.clearAllMocks();
-  consoleLogSpy.mockRestore();
-  consoleWarnSpy.mockRestore();
-  consoleErrorSpy.mockRestore();
 });
 
 test("Expect onExecutePostLogin to be defined", async () => {
