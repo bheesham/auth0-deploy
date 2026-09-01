@@ -3,13 +3,15 @@ exports.onExecutePostLogin = async (event, api) => {
   const userGroups = event.user.app_metadata?.groups || [];
 
   switch (event.client.client_id) {
-    case "pFf6sBIfp4n3Wcs3F9Q7a9ry8MTrbi2F": // matrix-oidc
+    // matrix-oidc
+    case "pFf6sBIfp4n3Wcs3F9Q7a9ry8MTrbi2F": {
       const preferred_username = event.user.email.split("@")[0];
       api.idToken.setCustomClaim("preferred_username", preferred_username);
       break;
-
-    case "cPH0znP4n74JvPf9Efc1w6O8KQWwT634": // Tines
-    case "cDof40r4Uvde1xGs8i30HYnekOkIglN6": // Tines SOAR
+    }
+    // Tines and Tines SOAR
+    case "cPH0znP4n74JvPf9Efc1w6O8KQWwT634":
+    case "cDof40r4Uvde1xGs8i30HYnekOkIglN6": {
       // Only pass relative groups. These should match the authorized apps in apps.yml
       const tineGroups = [
         "mozilliansorg_sec_tines-admin",
@@ -34,33 +36,38 @@ exports.onExecutePostLogin = async (event, api) => {
         null
       );
       break;
-
-    case "wgh8S9GaE7sJ4i0QrAzeMxFXgWZYtB0l": // sage-intacct
+    }
+    // sage-intacct
+    case "wgh8S9GaE7sJ4i0QrAzeMxFXgWZYtB0l": {
       api.samlResponse.setAttribute("Company Name", "MOZ Corp");
       api.samlResponse.setAttribute("emailAddress", event.user.email);
       api.samlResponse.setAttribute("name", event.user.name);
       break;
-
-    case "pUmRmcBrAJEdsgRTVXIW84jZoc3wtuYO": // planful-dev
+    }
+    // planful-dev
+    case "pUmRmcBrAJEdsgRTVXIW84jZoc3wtuYO": {
       api.idToken.setCustomClaim(
         "IdP Entity ID",
         "urn:auth-dev.mozilla.auth0.com"
       );
       break;
-
-    case "H5ddlJSCfGP8ab65EnWaB2sd541CJAlM": // planful
+    }
+    // planful
+    case "H5ddlJSCfGP8ab65EnWaB2sd541CJAlM": {
       api.idToken.setCustomClaim("IdP Entity ID", "auth.mozilla.auth0.com");
       break;
-
+    }
+    // thinksmart
     // This can be move to the SAML settings of the application
-    case "R4djNlyXSl3i8N2KXWkfylghDa9kFQ84": // thinksmart
+    case "R4djNlyXSl3i8N2KXWkfylghDa9kFQ84": {
       api.samlResponse.setAttribute("Email", event.user.email);
       api.samlResponse.setAttribute("firstName", event.user.given_name);
       api.samlResponse.setAttribute("lastName", event.user.family_name);
       break;
-
+    }
+    // stripe-subplat
     // https://bugzilla.mozilla.org/show_bug.cgi?id=1637117
-    case "cEfnJekrSStxxxBascTjNEDAZVUPAIU2": // stripe-subplat
+    case "cEfnJekrSStxxxBascTjNEDAZVUPAIU2": {
       const groupToStripeRoleMap = {
         //  LDAP group name          stripe_role_name           stripe_account_id
         stripe_subplat_admin: [
@@ -97,16 +104,18 @@ exports.onExecutePostLogin = async (event, api) => {
         }
       });
       break;
-
-    case "inoLoMyAEOzLX1cZOvubQpcW18pk4O1S": // acoustic-stage
-    case "sBImsybtPPLyWlstD0SC35IwnAafE4nB": // acoustic-prod
+    }
+    // acoustic-stage, acoustic-prod
+    case "inoLoMyAEOzLX1cZOvubQpcW18pk4O1S":
+    case "sBImsybtPPLyWlstD0SC35IwnAafE4nB": {
       api.samlResponse.setAttribute("Nameid", event.user.email);
       api.samlResponse.setAttribute("email", event.user.email);
       api.samlResponse.setAttribute("firstName", event.user.given_name);
       api.samlResponse.setAttribute("lastName", event.user.family_name);
       break;
-
-    case "eEAeYh6BMPfRyiSDax0tejjxkWi22zkP": // bitsight
+    }
+    // bitsight
+    case "eEAeYh6BMPfRyiSDax0tejjxkWi22zkP": {
       api.samlResponse.setAttribute(
         "urn:oid:0.9.2342.19200300.100.1.3",
         event.user.email
@@ -136,9 +145,10 @@ exports.onExecutePostLogin = async (event, api) => {
         bitsight_user_role
       );
       break;
-
-    case "q0tFB9QyFIKqPOOKvkFnHMj2VwrLjX46": // Google (test.mozilla.com)
-    case "uYFDijsgXulJ040Os6VJLRxf0GG30OmC":
+    }
+    // Google (test.mozilla.com)
+    case "q0tFB9QyFIKqPOOKvkFnHMj2VwrLjX46":
+    case "uYFDijsgXulJ040Os6VJLRxf0GG30OmC": {
       // This rule simply remaps @mozilla.com e-mail addresses to @test.mozilla.com to be used with the test.mozilla.com GSuite domain.
       // Be careful when adding replacements not to do "double-replacements" where a replace replaces another rule. If that happens,
       // you probably want to improve this code instead
@@ -171,8 +181,9 @@ exports.onExecutePostLogin = async (event, api) => {
         "urn:oasis:names:tc:SAML:2.0:nameid-format:email"
       );
       break;
-
-    case "RmsIEl3T3cZzpKhEmZv1XZDns0OvTzIy":
+    }
+    // Vectra
+    case "RmsIEl3T3cZzpKhEmZv1XZDns0OvTzIy": {
       // Vectra expects one and only one group which happens to map to a single role on the Vectra side
       // https://support.vectra.ai/s/article/KB-VS-1577
 
@@ -202,13 +213,15 @@ exports.onExecutePostLogin = async (event, api) => {
         "upn"
       );
       break;
-
-    case "gL08r5BRiweqf4aDQVX6xB4FHyFepFlM": // Navex - Stage
-    case "iz2qSHo0lSv2nRZ8V3JnOESX5UR4dcpX": // Navex
+    }
+    // Navex - Stage, Navex
+    case "gL08r5BRiweqf4aDQVX6xB4FHyFepFlM":
+    case "iz2qSHo0lSv2nRZ8V3JnOESX5UR4dcpX": {
       api.samlResponse.setAttribute("PARTITION", "MOZILLA");
       break;
-
-    case "Ury9HCvBS4B1SzAH8f3YASbbcGf5QlQf":
+    }
+    // LGTM
+    case "Ury9HCvBS4B1SzAH8f3YASbbcGf5QlQf": {
       // This rule sets a specific public key to encrypt the SAML assertion generated from Auth0
       // and overrides the Issuer, because the client hardcodes a validation check for URL format
       // TODO: In actions, the issuer cannot be overridden
@@ -221,13 +234,15 @@ exports.onExecutePostLogin = async (event, api) => {
         "-----BEGIN CERTIFICATE-----\nMIIFqDCCA5CgAwIBAgIELygDFTANBgkqhkiG9w0BAQsFADCBhDELMAkGA1UEBhMC\nR0IxFDASBgNVBAgTC094Zm9yZHNoaXJlMQ8wDQYDVQQHEwZPeGZvcmQxEzARBgNV\nBAoTClNlbW1sZSBMdGQxDTALBgNVBAsTBExHVE0xKjAoBgNVBAMTIUxHVE0gQXV0\nby1HZW5lcmF0ZWQgT25lbG9naW4gY2VydDAeFw0xOTA1MjEwNjEyNTdaFw0yMjA1\nMjAwNjEyNTdaMIGEMQswCQYDVQQGEwJHQjEUMBIGA1UECBMLT3hmb3Jkc2hpcmUx\nDzANBgNVBAcTBk94Zm9yZDETMBEGA1UEChMKU2VtbWxlIEx0ZDENMAsGA1UECxME\nTEdUTTEqMCgGA1UEAxMhTEdUTSBBdXRvLUdlbmVyYXRlZCBPbmVsb2dpbiBjZXJ0\nMIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAo0pAWRHxJ3NWnItdWa7G\nsmBt4sQF7TlBDGDNUB55ojtl29ifLMfijmElgiBDwDn0IuzI+hKMHSCHlmBFvLMq\nIqJ36J//PPx6wVnkzuiRjKirRKP5CCbchF/McHH2cMi8SVrX2a+zIefPkLVoxDub\nAITQpmos/g5AkD07U/Js+130gTY1QJdYeJOOxkuJ9Afsrd0rJWvULh6+I/saP7zu\nSNMpPqYOxACXkqqdUMkTUE4EMhVIqcuw1qUO09JRjrGOkS1NKE+x7u8vpbevst9q\nntPglJ0730xx5cVJKXwQDWMXsxC4RSlrI6FZyryez0bwq5UGO9oBvtFsVy+rIWj2\nVSdzw7tmkrhED4oCItapgFLsKQWrKiRsCaWZOnW2Fz+cWFkepgelHE/oOZGBv+k3\nIvNZr7MxYLPPJQ7p4SMmT+TLPWXWmRGpL9uqE8ZwvGrUF4R1GzEQrVFd2NxbKzuO\nPHYwiPzzJNJwME541jL5A1cqsayEAXy0YltGGnofNa1mfk2PmfqfzZPXp79QOwW/\nNXPKNKAPgFI5g7zHQvbmnlnrOzUn8jrOHhxfZmY+hkQ0Mtju7H4L5AKJ5Dn7p2nv\nkK4HIymsXOdcj6WUcTi88yZX2yTXDnYtglXUIBKJVks6WiuF/yrhiaT2HLWa8WF0\nkD+1uOvqgm9nCKm7H6zHk7MCAwEAAaMgMB4wDAYDVR0TBAUwAwEB/zAOBgNVHQ8B\nAf8EBAMCAQYwDQYJKoZIhvcNAQELBQADggIBAH/xAuVUXRDGo5vn/uERfssPc8Fa\nyL0wurpoy5jXVvYALSZouNGG26M6kJ+UTaxwBMm0zk3hGOE24qiIMNoDLupwsVFq\n8r9DsbD2hbcIqwzReI03KiKZ4PBBugV/I4nZVpu69yxk+lfNPW34CRYuRQGcISbA\nVIh5MS6fp2+7eCdxGCobLPMUmGSitgJUzUlvIIvvIyQ9mPP4S5MnIjNEnE7qolmz\nhPz2cLTJzRAVtOc2QAtMFEBysIXzJ5X3xkN750dflgHeo5voX07J/PEUN1vfTBBN\n8WJZBfqgNXauARnDCUsOrN+5NeBXmURiSrO+JGJu72Bwbabuw44EwrPap5otC/Hu\nTDIHJy/MnPmwXAhiW7jY9luNxtJL/9DfBEHNHU4AF3/0D90NU6artINqwKCebr/8\nlX4xmavcXRXh3EP6iqaCG+zpdyCquuE3GaCv48VY7WzKiajDE6abmy78nmu7nk++\n+7aGLMisf4CNIBDL9L6ZvdgHV2Oaom7h5P2L0Z0OfslE4C+IpAI+9lxcMzTOJHTf\n0khlXKceA5ky+1rne4IezyUbvwAKJ32M99yYRvCyevJW9XpoVQIYLc/iVbi5VjxL\nQGFqYSnLIlzudgiJq5x/24VqLB8EC5H+6XzLAzAolwYj/CKTBQsBIQqa/CKa6nOu\nyZliiPtDlnK3bBeY\n-----END CERTIFICATE-----\n"
       );
       break;
-
-    case "x7TF6ZtJev4ktoHR4ObWmA9KeqGni6rq": // Braintree
+    }
+    // Braintree
+    case "x7TF6ZtJev4ktoHR4ObWmA9KeqGni6rq": {
       api.samlResponse.setAttribute("grant_all_merchant_accounts", "true");
       api.samlResponse.setAttribute("roles", event.user.app_metadata.groups);
       break;
-
-    case "3c7lAT2sPywWjvgVP5ngCQysHtnNqQFj": // EQS Integrity Line
+    }
+    // EQS Integrity Line
+    case "3c7lAT2sPywWjvgVP5ngCQysHtnNqQFj": {
       const cryptokey = event.secrets.samlMappings_eqs_integrity_line_cryptokey;
       if (!cryptokey) {
         console.log(
@@ -239,7 +254,9 @@ exports.onExecutePostLogin = async (event, api) => {
       }
       api.samlResponse.setAttribute("cryptokey", cryptokey);
       break;
-    case "JmJAOmGbtZsojMpFQC5fcmqghWHbuKrf": // Workato Workspace SSO
+    }
+    // Workato Workspace SSO
+    case "JmJAOmGbtZsojMpFQC5fcmqghWHbuKrf": {
       // The `*Prefix` consts should be kept in sync with PeopleMo and
       // apps.yml. Since PeopleMo only deals with groups, we have to split
       // up, by some convention, the difference between Roles and Groups as
@@ -305,7 +322,9 @@ exports.onExecutePostLogin = async (event, api) => {
         }
       }
       break;
-    case "qXfKerLoU8w8FN76OB9Yt7I6w2N8lD2Y": // Workato Identity
+    }
+    // Workato Identity
+    case "qXfKerLoU8w8FN76OB9Yt7I6w2N8lD2Y": {
       // And similarly to above (Workato Workspace), Workato expects custom
       // attributes to be set. We do some extra work to strip our internal
       // group prefix.
@@ -324,6 +343,7 @@ exports.onExecutePostLogin = async (event, api) => {
       api.samlResponse.setAttribute("workato_end_user_name", name);
       api.samlResponse.setAttribute("workato_end_user_groups", identityGroups);
       break;
+    }
   }
 
   return;
