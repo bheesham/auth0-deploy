@@ -92,7 +92,7 @@ exports.onExecutePostLogin = async (event, api) => {
 
       Object.keys(groupToStripeRoleMap).forEach((groupName) => {
         if (
-          event.user.hasOwnProperty("groups") &&
+          Object.hasOwn(event.user, "groups") &&
           event.user.groups.includes(groupName)
         ) {
           groupToStripeRoleMap[groupName].forEach((roleInfo) => {
