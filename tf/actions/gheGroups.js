@@ -31,8 +31,8 @@ exports.onExecutePostLogin = async (event, api) => {
   const applicationGroupMapping = {
     // Dev applications
     "9MR2UMAftbs6758Rmbs8yZ9Dj5AjeT0P": [
-      "mozilliansorg_ghe_ghe-auth-dev_users",
       "gh_access_mozilla",
+      "mozilliansorg_ghe_ghe-auth-dev_users",
     ],
 
     // Prod applications
@@ -40,10 +40,13 @@ exports.onExecutePostLogin = async (event, api) => {
       "mozilliansorg_ghe_mozilla-actions_users",
     ],
     EnEylt4OZW6i7yCWzZmCxyCxDRp6lOY0: [
-      "mozilliansorg_ghe_saml-test-integrations_users",
       "gh_access_mozilla",
+      "mozilliansorg_ghe_saml-test-integrations_users",
     ],
-    "2MVzcGFtl2rbdEx97rpC98urD6ZMqUcf": ["mozilliansorg_ghe_mozilla-it_users"],
+    "2MVzcGFtl2rbdEx97rpC98urD6ZMqUcf": [
+      "gh_access_mozilla",
+      "mozilliansorg_ghe_mozilla-it_users",
+    ],
     Cc2xFG6xS5O8UKoSzoJ4eNggo6jHnzDU: ["mozilliansorg_ghe_mozilla-games_users"],
     "8lXCX2EGQNLixvBqONK3ceCVY2ppYiU6": [
       "mozilliansorg_ghe_mozilla-jetpack_users",
@@ -58,21 +61,31 @@ exports.onExecutePostLogin = async (event, api) => {
       "mozilliansorg_ghe_mozilla-outreachy-datascience_users",
     ],
     lhAIAsdx3jSOiKe1LoHmB0zEsUrCbfhI: [
+      "gh_access_mozilla",
       "mozilliansorg_ghe_moco-ghe-admin_users",
     ],
     f1MpcTzYA8J06nUUdO5LuhhA7b4JZVJi: [
-      "mozilliansorg_ghe_mozilla_users",
       "gh_access_mozilla",
+      "mozilliansorg_ghe_mozilla_users",
     ],
-    s0v1r2d34lTqPtQu0jBVOKbWOKK4i1TU: ["mozilliansorg_ghe_mozmeao_users"],
-    "5GfQ2AMXMqibOsatSYTKh3dVSioVPhGA": ["mozilliansorg_ghe_mozrelops_users"],
+    s0v1r2d34lTqPtQu0jBVOKbWOKK4i1TU: [
+      "gh_access_mozilla",
+      "mozilliansorg_ghe_mozmeao_users",
+    ],
+    "5GfQ2AMXMqibOsatSYTKh3dVSioVPhGA": [
+      "gh_access_mozilla",
+      "mozilliansorg_ghe_mozrelops_users",
+    ],
     k2dBGcFJAhzlqOuSZH5nQhyq6L87jVaT: [
       "mozilliansorg_ghe_mozilla-svcops_users",
     ],
     oU3JDtWZSeeBuUcJ0dfLKXU1S2tnTg0K: [
       "mozilliansorg_ghe_mozilla-applied-ml_users",
     ],
-    NyrIlf4H3ZYtMUfJLs6UmUwllOpfo23v: ["mozilliansorg_ghe_mozilla-iam_users"],
+    NyrIlf4H3ZYtMUfJLs6UmUwllOpfo23v: [
+      "gh_access_mozilla",
+      "mozilliansorg_ghe_mozilla-iam_users",
+    ],
     TeSutPsFGcieGEIl30pL35lrZ4HDEim0: ["mozilliansorg_ghe_devtools-html_users"],
     HPl9z5rJS6mjRUNqkcr2avRZvnnXW1nI: [
       "mozilliansorg_ghe_mozilla-archive_users",
@@ -88,69 +101,103 @@ exports.onExecutePostLogin = async (event, api) => {
     ],
     qBv5vlRW7fNiIRIiuSjjZtoulwlUwo6L: ["mozilliansorg_ghe_mozilladpx_users"],
     "4Op3cF3IvEHBGpD6gIFHHUlAXFGLiZWq": [
+      "gh_access_mozilla",
       "mozilliansorg_ghe_mozilla-frontend-infra_users",
     ],
     IYfS3mWjTOnCX5YJ6mMWlBWEJyAwUAZm: ["mozilliansorg_ghe_mozilla-bteam_users"],
     tflU5Bd4CAzzlJzgDPT25Ks2CNADkuhZ: [
+      "gh_access_mozilla",
       "mozilliansorg_ghe_mozilla-conduit_users",
     ],
     HHb263N55HitFj5bBVFanv2AnF6E6bGf: [
       "mozilliansorg_ghe_mozilla-sre-deploy_users",
     ],
     bPCduBPyVFSxPEEdpG3dMdoiHXuj26Kr: [
+      "gh_access_mozilla",
       "mozilliansorg_ghe_firefox-devtools_users",
     ],
     fqzPu0Hg17Vgx90JcWh1nWcV8TN4WkXa: [
       "mozilliansorg_ghe_iodide-project_users",
     ],
-    AcnyB9st2RTC6JfqizCSdaMlzBC7notV: ["mozilliansorg_ghe_mozilla-l10n_users"],
+    AcnyB9st2RTC6JfqizCSdaMlzBC7notV: [
+      "gh_access_mozilla",
+      "mozilliansorg_ghe_mozilla-l10n_users",
+    ],
     fdGht0OM5DNTYPTWENtEhrXdGP6zmH9L: [
       "mozilliansorg_ghe_mozilla-lockwise_users",
     ],
     aKU0bzGLTVv53jDokaUDwNUyNfZxgT4R: [
+      "gh_access_mozilla",
       "mozilliansorg_ghe_mozilla-spidermonkey_users",
     ],
     Oy6exOuOGejAqExc8fZnSGdJA9t4njnG: [
       "mozilliansorg_ghe_mozillareality_users",
     ],
     "3iAAhN0vAavOHIzCqnaFKo9Mlqb9pBLH": [
+      "gh_access_mozilla",
       "mozilliansorg_ghe_mozillasecurity_users",
     ],
     A5hvTaSHqMyrCVMypE3TNhW4VXQzM63d: ["mozilliansorg_ghe_nubisproject_users"],
-    VStrUcaxLXH9xQEEFX9Vkf0D5pRo5c6C: ["mozilliansorg_ghe_projectfluent_users"],
-    WKOfTFaGTV10YKzfkMOyAl3bgi3BPFMc: ["mozilliansorg_ghe_taskcluster_users"],
+    VStrUcaxLXH9xQEEFX9Vkf0D5pRo5c6C: [
+      "gh_access_mozilla",
+      "mozilliansorg_ghe_projectfluent_users",
+    ],
+    WKOfTFaGTV10YKzfkMOyAl3bgi3BPFMc: [
+      "gh_access_mozilla",
+      "mozilliansorg_ghe_taskcluster_users",
+    ],
     "8Zhm4W07m9OSBlwN2h9FtQorFs6WgbQ8": [
+      "gh_access_mozilla",
       "mozilliansorg_ghe_mozilla-mobile_users",
     ],
-    vJG7CGVQutdCWpMGO9pkC5Vn4vgJzJ3I: ["mozilliansorg_ghe_mozilla-ocho_users"],
+    vJG7CGVQutdCWpMGO9pkC5Vn4vgJzJ3I: [
+      "gh_access_mozilla",
+      "mozilliansorg_ghe_mozilla-ocho_users",
+    ],
     dlDfXM5oqapRXUvrkCarPwgTN2INIA9G: [
       "mozilliansorg_ghe_mozilla-metrics_users",
     ],
     lJbj6OE9VFK05i2XjZEiAEljamPyOCkz: [
+      "gh_access_mozilla",
       "mozilliansorg_ghe_mozilla-platform-ops_users",
     ],
     AgiLB9xCoW4beavY9z7UuvO36DLmdwJ1: ["mozilliansorg_ghe_mozilla-rally_users"],
-    QfJVAjXlaGzpCo5S48J9D38QvIfhlYzF: ["mozilliansorg_ghe_mozilla-data_users"],
+    QfJVAjXlaGzpCo5S48J9D38QvIfhlYzF: [
+      "gh_access_mozilla",
+      "mozilliansorg_ghe_mozilla-data_users",
+    ],
     UwUgLsXH6YtrWLATQpTuil2iNilYGGhF: [
+      "gh_access_mozilla",
       "mozilliansorg_ghe_mozilla-services_users",
     ],
-    RLPUxhCQsmmRHyOmDOGkLpu1mArNH3xn: ["mozilliansorg_ghe_firefoxux_users"],
+    RLPUxhCQsmmRHyOmDOGkLpu1mArNH3xn: [
+      "gh_access_mozilla",
+      "mozilliansorg_ghe_firefoxux_users",
+    ],
     KMcYzqySOFXHteY1zliDlq577ARCb6gi: ["mozilliansorg_ghe_mozillasocial_users"],
     IEc83wZvZzcQXMkpUmrnb9P8wztUiokl: ["mozilliansorg_ghe_mozscout_users"],
     vkoDkHlCEUhlHNhVDtewJqRLVLGVsPrZ: [
       "mozilliansorg_ghe_mozilla-fakespot_users",
     ],
-    T6mjvGguOB5hkq9Aviaa58tOlwpJG5o6: ["mozilliansorg_ghe_mozilla-necko_users"],
+    T6mjvGguOB5hkq9Aviaa58tOlwpJG5o6: [
+      "gh_access_mozilla",
+      "mozilliansorg_ghe_mozilla-necko_users",
+    ],
     ZemrAl9S2q9GKJNQUdjZCNsLiVmSEg1P: [
       "mozilliansorg_ghe_mozilla-privacy_users",
     ],
     sZHTTA4iuHgmiQGzbkS7lcXE1bbMGces: [
+      "gh_access_mozilla",
       "mozilliansorg_ghe_firefoxgraphics_users",
     ],
     JDiNCQVrXzw2ILureegz1T8c3OrUZCUb: [
+      "gh_access_mozilla",
       "mozilliansorg_ghe_mozilla-firefox_users",
     ],
-    "3hrj2F7ec00Y0nYMZivYzJh6FnqydBX5": ["mozilliansorg_ghe_firefox-ai_users"],
+    "3hrj2F7ec00Y0nYMZivYzJh6FnqydBX5": [
+      "gh_access_mozilla",
+      "mozilliansorg_ghe_firefox-ai_users",
+    ],
     AbtfcVLkkFuMR0A1fWUvDQrVZOhEyDMA: ["mozilliansorg_ghe_mozillaonline_users"],
     TzMKYmrhJY9XWX8f6xVHkhZHMC4BhPuj: ["mozilliansorg_ghe_fxbox_users"],
     JT3G28PrEk9Or1bzHSu0TBsj2ETeRuXm: [
