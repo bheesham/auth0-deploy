@@ -68,10 +68,16 @@ exports.onExecutePostLogin = async (event, api) => {
     // stripe-subplat
     // https://bugzilla.mozilla.org/show_bug.cgi?id=1637117
     // IAM-2043
+    // There's a specific allow for `araccounting@mozilla.com` because we don't
+    // have a way to do role mappings. apps.yml deals purely with
+    // authorization.
+    // If we need to support more shared accounts for Stripe, we'll need
+    // to ensure apps.yml and this list are maintained.
     case "cEfnJekrSStxxxBascTjNEDAZVUPAIU2": {
       const groupToRoles = [
         {
           group: "mozilliansorg_stripe_subplat_admin",
+          users: ["araccounting@mozilla.com"],
           roles: [{ role: "admin", account: "acct_1EJOaaJNcmPzuWtR" }],
         },
         {
@@ -95,7 +101,10 @@ exports.onExecutePostLogin = async (event, api) => {
       ];
       const userGroups = event.user.groups ?? [];
       for (const rule of groupToRoles) {
-        if (!userGroups.includes(rule.group)) {
+        const usersAllowed = rule.users ?? [];
+        const isAllowedByEmail = usersAllowed.includes(event.user.email);
+        const isAllowedByGroup = userGroups.includes(rule.group);
+        if (!(isAllowedByEmail || isAllowedByGroup)) {
           continue;
         }
         for (const role of rule.roles) {

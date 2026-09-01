@@ -354,6 +354,17 @@ describe("Stripe-Subplat SAML tests", () => {
       expect(_samlAttributes).toEqual(expectedSamlAttributes);
     }
   );
+
+  test("Shared account araccounting@mozilla.com is admin", async () => {
+    _event.client.client_id = "cEfnJekrSStxxxBascTjNEDAZVUPAIU2";
+    _event.user.email = "araccounting@mozilla.com";
+    const expectedSamlAttributes = {
+      "Stripe-Role-acct_1EJOaaJNcmPzuWtR": "admin",
+    };
+    await onExecutePostLogin(_event, api);
+    expect(api.samlResponse.setAttribute).toHaveBeenCalled();
+    expect(_samlAttributes).toEqual(expectedSamlAttributes);
+  });
 });
 
 describe("Acoustic SAML tests", () => {
