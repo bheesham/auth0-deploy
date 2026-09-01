@@ -67,42 +67,44 @@ exports.onExecutePostLogin = async (event, api) => {
     }
     // stripe-subplat
     // https://bugzilla.mozilla.org/show_bug.cgi?id=1637117
+    // IAM-2043
     case "cEfnJekrSStxxxBascTjNEDAZVUPAIU2": {
-      const groupToStripeRoleMap = {
-        //  LDAP group name          stripe_role_name           stripe_account_id
-        stripe_subplat_admin: [
-          { role: "admin", account: "acct_1EJOaaJNcmPzuWtR" },
-        ],
-        stripe_subplat_developer: [
-          { role: "developer", account: "acct_1EJOaaJNcmPzuWtR" },
-        ],
-        stripe_subplat_supportsp: [
-          {
-            role: "support_specialist",
-            account: "acct_1EJOaaJNcmPzuWtR",
-          },
-        ],
-        stripe_subplat_analyst: [
-          { role: "analyst", account: "acct_1EJOaaJNcmPzuWtR" },
-        ],
-        stripe_subplat_viewonly: [
-          { role: "view_only", account: "acct_1EJOaaJNcmPzuWtR" },
-        ],
-      };
-
-      Object.keys(groupToStripeRoleMap).forEach((groupName) => {
-        if (
-          Object.hasOwn(event.user, "groups") &&
-          event.user.groups.includes(groupName)
-        ) {
-          groupToStripeRoleMap[groupName].forEach((roleInfo) => {
-            api.samlResponse.setAttribute(
-              `Stripe-Role-${roleInfo.account}`,
-              roleInfo.role
-            );
-          });
+      const groupToRoles = [
+        {
+          group: "mozilliansorg_stripe_subplat_admin",
+          roles: [{ role: "admin", account: "acct_1EJOaaJNcmPzuWtR" }],
+        },
+        {
+          group: "mozilliansorg_stripe_subplat_developer",
+          roles: [{ role: "developer", account: "acct_1EJOaaJNcmPzuWtR" }],
+        },
+        {
+          group: "mozilliansorg_stripe_subplat_supportsp",
+          roles: [
+            { role: "support_specialist", account: "acct_1EJOaaJNcmPzuWtR" },
+          ],
+        },
+        {
+          group: "mozilliansorg_stripe_subplat_analyst",
+          roles: [{ role: "analyst", account: "acct_1EJOaaJNcmPzuWtR" }],
+        },
+        {
+          group: "mozilliansorg_stripe_subplat_viewonly",
+          roles: [{ role: "view_only", account: "acct_1EJOaaJNcmPzuWtR" }],
+        },
+      ];
+      const userGroups = event.user.groups ?? [];
+      for (const rule of groupToRoles) {
+        if (!userGroups.includes(rule.group)) {
+          continue;
         }
-      });
+        for (const role of rule.roles) {
+          api.samlResponse.setAttribute(
+            `Stripe-Role-${role.account}`,
+            role.role
+          );
+        }
+      }
       break;
     }
     // acoustic-stage, acoustic-prod

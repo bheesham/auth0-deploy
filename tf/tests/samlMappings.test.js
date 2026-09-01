@@ -331,11 +331,14 @@ describe("Thinksmart SAML tests", () => {
 describe("Stripe-Subplat SAML tests", () => {
   const clientIDs = ["cEfnJekrSStxxxBascTjNEDAZVUPAIU2"];
   const roles = [
-    { group: "stripe_subplat_admin", role: "admin" },
-    { group: "stripe_subplat_developer", role: "developer" },
-    { group: "stripe_subplat_supportsp", role: "support_specialist" },
-    { group: "stripe_subplat_analyst", role: "analyst" },
-    { group: "stripe_subplat_viewonly", role: "view_only" },
+    { group: "mozilliansorg_stripe_subplat_admin", role: "admin" },
+    { group: "mozilliansorg_stripe_subplat_developer", role: "developer" },
+    {
+      group: "mozilliansorg_stripe_subplat_supportsp",
+      role: "support_specialist",
+    },
+    { group: "mozilliansorg_stripe_subplat_analyst", role: "analyst" },
+    { group: "mozilliansorg_stripe_subplat_viewonly", role: "view_only" },
     { group: undefined, role: undefined },
   ];
 
