@@ -1,12 +1,8 @@
 const _ = require("lodash");
-const auth0Sdk = require("auth0");
 
 const idTokenObj = require("./modules/idToken.json");
 const eventObj = require("./modules/event.json");
 const { onExecutePostLogin } = require("../actions/samlMappings.js");
-
-// Mock auth0 module
-jest.mock("auth0");
 
 // Function to extract matching key-value pairs
 const extractMatchingPairs = (objToSearch, objToFind) => {
@@ -14,7 +10,7 @@ const extractMatchingPairs = (objToSearch, objToFind) => {
 
   Object.keys(objToFind).forEach((key) => {
     if (
-      objToSearch.hasOwnProperty(key) &&
+      Object.hasOwn(objToSearch, key) &&
       objToSearch[key] === objToFind[key]
     ) {
       result[key] = objToSearch[key];
@@ -61,17 +57,17 @@ beforeEach(() => {
 
   // Mock api.samlResponse.setNameIdentifierFormat
   api.samlResponse.setNameIdentifierFormat.mockImplementation((value) => {
-    _samlAttributes["NameIdentifierFormat"] = value;
+    _samlAttributes.NameIdentifierFormat = value;
   });
 
   // Mock api.samlResponse.setEncryptionPublicKey
   api.samlResponse.setEncryptionPublicKey.mockImplementation((value) => {
-    _samlAttributes["EncryptionPublicKey"] = value;
+    _samlAttributes.EncryptionPublicKey = value;
   });
 
   // Mock api.samlResponse.setEncryptionCert
   api.samlResponse.setEncryptionCert.mockImplementation((value) => {
-    _samlAttributes["EncryptionCert"] = value;
+    _samlAttributes.EncryptionCert = value;
   });
 });
 
@@ -452,13 +448,13 @@ describe("Google SAML tests", () => {
       _event.client.client_id = clientID;
       _event.user.email = `jdoe@${domain}`;
 
-      let domainReplacedEmail = undefined;
-      if (clientID == "q0tFB9QyFIKqPOOKvkFnHMj2VwrLjX46") {
+      let domainReplacedEmail;
+      if (clientID === "q0tFB9QyFIKqPOOKvkFnHMj2VwrLjX46") {
         domainReplacedEmail = _event.user.email
           .replace("mozilla.com", "test.mozilla.com")
           .replace("mozillafoundation.org", "test.mozillafoundation.org")
           .replace("getpocket.com", "test-gsuite.getpocket.com");
-      } else if (clientID == "uYFDijsgXulJ040Os6VJLRxf0GG30OmC") {
+      } else if (clientID === "uYFDijsgXulJ040Os6VJLRxf0GG30OmC") {
         domainReplacedEmail = _event.user.email
           .replace("mozilla.com", "gcp.infra.mozilla.com")
           .replace("mozillafoundation.org", "gcp.infra.mozilla.com")
