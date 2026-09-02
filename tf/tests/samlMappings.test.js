@@ -1,22 +1,8 @@
 const _ = require("lodash");
-const auth0Sdk = require("auth0");
 
 const idTokenObj = require("./modules/idToken.json");
 const eventObj = require("./modules/event.json");
 const { onExecutePostLogin } = require("../actions/samlMappings.js");
-
-// Mock auth0 module
-jest.mock("auth0");
-
-// Take all log enteries and combine them into a single array
-const combineLog = (consoleLogs) => {
-  let combinedLog = [];
-  for (let i = 0; i < consoleLogs.length; i++) {
-    singleStr = consoleLogs[i].join(" ");
-    combinedLog.push(singleStr);
-  }
-  return combinedLog;
-};
 
 // Function to extract matching key-value pairs
 const extractMatchingPairs = (objToSearch, objToFind) => {
@@ -24,7 +10,7 @@ const extractMatchingPairs = (objToSearch, objToFind) => {
 
   Object.keys(objToFind).forEach((key) => {
     if (
-      objToSearch.hasOwnProperty(key) &&
+      Object.hasOwn(objToSearch, key) &&
       objToSearch[key] === objToFind[key]
     ) {
       result[key] = objToSearch[key];
@@ -71,31 +57,23 @@ beforeEach(() => {
 
   // Mock api.samlResponse.setNameIdentifierFormat
   api.samlResponse.setNameIdentifierFormat.mockImplementation((value) => {
-    _samlAttributes["NameIdentifierFormat"] = value;
+    _samlAttributes.NameIdentifierFormat = value;
   });
 
   // Mock api.samlResponse.setEncryptionPublicKey
   api.samlResponse.setEncryptionPublicKey.mockImplementation((value) => {
-    _samlAttributes["EncryptionPublicKey"] = value;
+    _samlAttributes.EncryptionPublicKey = value;
   });
 
   // Mock api.samlResponse.setEncryptionCert
   api.samlResponse.setEncryptionCert.mockImplementation((value) => {
-    _samlAttributes["EncryptionCert"] = value;
+    _samlAttributes.EncryptionCert = value;
   });
-
-  // Spy on console
-  consoleLogSpy = jest.spyOn(console, "log").mockImplementation(() => {});
-  consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
-  consoleErrorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
 });
 
 afterEach(() => {
   // Clean up after each test
   jest.clearAllMocks();
-  consoleLogSpy.mockRestore();
-  consoleWarnSpy.mockRestore();
-  consoleErrorSpy.mockRestore();
 });
 
 test("Expect onExecutePostLogin to be defined", async () => {
@@ -331,11 +309,14 @@ describe("Thinksmart SAML tests", () => {
 describe("Stripe-Subplat SAML tests", () => {
   const clientIDs = ["cEfnJekrSStxxxBascTjNEDAZVUPAIU2"];
   const roles = [
-    { group: "stripe_subplat_admin", role: "admin" },
-    { group: "stripe_subplat_developer", role: "developer" },
-    { group: "stripe_subplat_supportsp", role: "support_specialist" },
-    { group: "stripe_subplat_analyst", role: "analyst" },
-    { group: "stripe_subplat_viewonly", role: "view_only" },
+    { group: "mozilliansorg_stripe_subplat_admin", role: "admin" },
+    { group: "mozilliansorg_stripe_subplat_developer", role: "developer" },
+    {
+      group: "mozilliansorg_stripe_subplat_supportsp",
+      role: "support_specialist",
+    },
+    { group: "mozilliansorg_stripe_subplat_analyst", role: "analyst" },
+    { group: "mozilliansorg_stripe_subplat_viewonly", role: "view_only" },
     { group: undefined, role: undefined },
   ];
 
@@ -369,6 +350,17 @@ describe("Stripe-Subplat SAML tests", () => {
       expect(_samlAttributes).toEqual(expectedSamlAttributes);
     }
   );
+
+  test("Shared account araccounting@mozilla.com is admin", async () => {
+    _event.client.client_id = "cEfnJekrSStxxxBascTjNEDAZVUPAIU2";
+    _event.user.email = "araccounting@mozilla.com";
+    const expectedSamlAttributes = {
+      "Stripe-Role-acct_1EJOaaJNcmPzuWtR": "admin",
+    };
+    await onExecutePostLogin(_event, api);
+    expect(api.samlResponse.setAttribute).toHaveBeenCalled();
+    expect(_samlAttributes).toEqual(expectedSamlAttributes);
+  });
 });
 
 describe("Acoustic SAML tests", () => {
@@ -456,13 +448,13 @@ describe("Google SAML tests", () => {
       _event.client.client_id = clientID;
       _event.user.email = `jdoe@${domain}`;
 
-      let domainReplacedEmail = undefined;
-      if (clientID == "q0tFB9QyFIKqPOOKvkFnHMj2VwrLjX46") {
+      let domainReplacedEmail;
+      if (clientID === "q0tFB9QyFIKqPOOKvkFnHMj2VwrLjX46") {
         domainReplacedEmail = _event.user.email
           .replace("mozilla.com", "test.mozilla.com")
           .replace("mozillafoundation.org", "test.mozillafoundation.org")
           .replace("getpocket.com", "test-gsuite.getpocket.com");
-      } else if (clientID == "uYFDijsgXulJ040Os6VJLRxf0GG30OmC") {
+      } else if (clientID === "uYFDijsgXulJ040Os6VJLRxf0GG30OmC") {
         domainReplacedEmail = _event.user.email
           .replace("mozilla.com", "gcp.infra.mozilla.com")
           .replace("mozillafoundation.org", "gcp.infra.mozilla.com")
