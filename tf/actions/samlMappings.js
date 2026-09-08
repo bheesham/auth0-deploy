@@ -76,26 +76,26 @@ exports.onExecutePostLogin = async (event, api) => {
     case "cEfnJekrSStxxxBascTjNEDAZVUPAIU2": {
       const groupToRoles = [
         {
-          group: "stripe_subplat_admin",
+          group: "mozilliansorg_stripe_subplat_admin",
           users: ["araccounting@mozilla.com"],
           roles: [{ role: "admin", account: "acct_1EJOaaJNcmPzuWtR" }],
         },
         {
-          group: "stripe_subplat_developer",
+          group: "mozilliansorg_stripe_subplat_developer",
           roles: [{ role: "developer", account: "acct_1EJOaaJNcmPzuWtR" }],
         },
         {
-          group: "stripe_subplat_supportsp",
+          group: "mozilliansorg_stripe_subplat_supportsp",
           roles: [
             { role: "support_specialist", account: "acct_1EJOaaJNcmPzuWtR" },
           ],
         },
         {
-          group: "stripe_subplat_analyst",
+          group: "mozilliansorg_stripe_subplat_analyst",
           roles: [{ role: "analyst", account: "acct_1EJOaaJNcmPzuWtR" }],
         },
         {
-          group: "stripe_subplat_viewonly",
+          group: "mozilliansorg_stripe_subplat_viewonly",
           roles: [{ role: "view_only", account: "acct_1EJOaaJNcmPzuWtR" }],
         },
       ];
@@ -103,9 +103,7 @@ exports.onExecutePostLogin = async (event, api) => {
       for (const rule of groupToRoles) {
         const usersAllowed = rule.users ?? [];
         const isAllowedByEmail = usersAllowed.includes(event.user.email);
-        const isAllowedByGroup =
-          userGroups.includes(rule.group) ||
-          userGroups.includes(`mozilliansorg_${rule.group}`);
+        const isAllowedByGroup = userGroups.includes(rule.group);
         if (!(isAllowedByEmail || isAllowedByGroup)) {
           continue;
         }
