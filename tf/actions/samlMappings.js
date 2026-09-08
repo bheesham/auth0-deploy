@@ -99,7 +99,6 @@ exports.onExecutePostLogin = async (event, api) => {
           roles: [{ role: "view_only", account: "acct_1EJOaaJNcmPzuWtR" }],
         },
       ];
-      const userGroups = event.user.groups ?? [];
       for (const rule of groupToRoles) {
         const usersAllowed = rule.users ?? [];
         const isAllowedByEmail = usersAllowed.includes(event.user.email);

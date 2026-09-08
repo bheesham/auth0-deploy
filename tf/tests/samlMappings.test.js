@@ -329,8 +329,8 @@ describe("Stripe-Subplat SAML tests", () => {
       _event.client.client_id = clientID;
 
       if (group !== undefined) {
-        _event.user.groups = _event.user.groups || [];
-        _event.user.groups.push(group);
+        _event.user.app_metadata.groups = _event.user.app_metadata.groups || [];
+        _event.user.app_metadata.groups.push(group);
         expectedSamlAttributes = {
           "Stripe-Role-acct_1EJOaaJNcmPzuWtR": role,
         };
